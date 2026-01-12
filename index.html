@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
   <title>monopoly_tg</title>
 
-  <!-- Telegram Mini App -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
   <link rel="stylesheet" href="./style.css" />
 </head>
 
@@ -15,10 +13,8 @@
   <div class="screen">
     <div id="viewport" class="viewport">
       <div id="canvas" class="canvas">
-        <!-- LEFT PLAYERS -->
         <aside id="players" class="players"></aside>
 
-        <!-- RIGHT GAME -->
         <main class="gameArea">
           <div id="board" class="board">
             <div id="cells" class="cells"></div>
@@ -26,19 +22,18 @@
             <div class="centerVoid"></div>
           </div>
 
-          <!-- overlays -->
           <div class="hud">
             <div id="turnBanner" class="turnBanner">
               <div class="turnTitle">Ваш ход!</div>
               <div class="turnSub">Вперёд, к новым победам!</div>
-              <button id="rollBtn" class="btn">Бросить кубики</button>
+              <button id="rollBtn" class="btn" type="button">Бросить кубики</button>
             </div>
 
             <div class="chat">
               <div id="chatLog" class="chatLog"></div>
               <div class="chatInput">
                 <input id="chatInput" type="text" placeholder="Введите сообщение..." />
-                <button id="sendBtn" class="btn mini">▶</button>
+                <button id="sendBtn" class="btn mini" type="button">▶</button>
               </div>
             </div>
 
