@@ -5,51 +5,55 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
   <title>monopoly_tg</title>
 
+  <!-- Telegram Mini App -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
   <link rel="stylesheet" href="./style.css" />
 </head>
 
 <body>
   <div class="screen">
-    <div id="canvas" class="canvas">
-      <aside id="players" class="players"></aside>
+    <div id="viewport" class="viewport">
+      <div id="canvas" class="canvas">
+        <!-- LEFT PLAYERS -->
+        <aside id="players" class="players"></aside>
 
-      <main class="gameArea">
-        <div id="board" class="board">
-          <div id="cells" class="cells"></div>
-          <div id="tokens" class="tokens"></div>
-          <div class="centerVoid"></div>
-        </div>
-
-        <div class="hud">
-          <div id="turnBanner" class="turnBanner">
-            <div class="turnTitle">Ваш ход!</div>
-            <div class="turnSub">Вперёд, к новым победам!</div>
-            <button id="rollBtn" class="btn">Бросить кубики</button>
+        <!-- RIGHT GAME -->
+        <main class="gameArea">
+          <div id="board" class="board">
+            <div id="cells" class="cells"></div>
+            <div id="tokens" class="tokens"></div>
+            <div class="centerVoid"></div>
           </div>
 
-          <div class="chat">
-            <div id="chatLog" class="chatLog"></div>
-            <div class="chatInput">
-              <input id="chatInput" type="text" placeholder="Введите сообщение..." />
-              <button id="sendBtn" class="btn mini">▶</button>
+          <!-- overlays -->
+          <div class="hud">
+            <div id="turnBanner" class="turnBanner">
+              <div class="turnTitle">Ваш ход!</div>
+              <div class="turnSub">Вперёд, к новым победам!</div>
+              <button id="rollBtn" class="btn">Бросить кубики</button>
             </div>
-          </div>
 
-          <div id="diceOverlay" class="diceOverlay hidden">
-            <div class="die">⚄</div>
-            <div class="die">⚁</div>
-          </div>
+            <div class="chat">
+              <div id="chatLog" class="chatLog"></div>
+              <div class="chatInput">
+                <input id="chatInput" type="text" placeholder="Введите сообщение..." />
+                <button id="sendBtn" class="btn mini">▶</button>
+              </div>
+            </div>
 
-          <!-- DEBUG STRIP -->
-          <div id="debug" class="debug">DEBUG: loading…</div>
-        </div>
-      </main>
+            <div id="diceOverlay" class="diceOverlay hidden">
+              <div class="die">⚄</div>
+              <div class="die">⚁</div>
+            </div>
+
+            <!-- debug line -->
+            <div id="debug" class="debug"></div>
+          </div>
+        </main>
+      </div>
     </div>
   </div>
-
-  <!-- Если JS не загрузился, увидишь красный баннер -->
-  <div id="nojs" class="nojs">JS НЕ ЗАГРУЗИЛСЯ: app.js не подключился</div>
 
   <script src="./app.js"></script>
 </body>
