@@ -2,111 +2,87 @@ const board = document.getElementById("board");
 const token = document.getElementById("token");
 const panel = document.getElementById("panel");
 const moneyEl = document.getElementById("money");
+const rollBtn = document.getElementById("roll");
 
 let money = 1500;
 let position = 0;
+let rolling = false;
 
-/* 40 клеток как в классической Monopoly */
+/* 40 клеток */
 const cells = [
-  { name: "START", type: "start" },
-  { name: "Vice Street", price: 60 },
-  { name: "Chance", type: "chance" },
-  { name: "Neon Ave", price: 60 },
-  { name: "Tax", type: "tax", value: 200 },
-
-  { name: "Jail", type: "jail" },
-  { name: "Pink Blvd", price: 100 },
-  { name: "Chance", type: "chance" },
-  { name: "Ocean Drive", price: 120 },
-  { name: "Luxury Tax", type: "tax", value: 100 },
-
-  { name: "Parking", type: "parking" },
-  { name: "Vice Plaza", price: 140 },
-  { name: "Chance", type: "chance" },
-  { name: "Neon Square", price: 160 },
-  { name: "Cyber Street", price: 180 },
-
-  { name: "Go To Jail", type: "gotojail" },
-  { name: "Miami Way", price: 200 },
-  { name: "Chance", type: "chance" },
-  { name: "Sunset Blvd", price: 220 },
-  { name: "Star Tax", type: "tax", value: 150 },
-
-  { name: "Free", type: "free" },
-  { name: "Vice Tower", price: 260 },
-  { name: "Chance", type: "chance" },
-  { name: "Neon Hills", price: 280 },
-  { name: "Cyber Tax", type: "tax", value: 100 },
-
-  { name: "Police", type: "jail" },
-  { name: "Ocean Tower", price: 300 },
-  { name: "Chance", type: "chance" },
-  { name: "Vice Resort", price: 320 },
-  { name: "Luxury Vice", price: 350 },
-
-  { name: "Finish", type: "finish" }
+  "START",
+  "Vice St", "Chance", "Neon Ave", "Tax",
+  "Jail",
+  "Pink Blvd", "Chance", "Ocean Dr", "Tax",
+  "Parking",
+  "Vice Plaza", "Chance", "Neon Sq", "Cyber St",
+  "Go Jail",
+  "Miami Way", "Chance", "Sunset Blvd", "Tax",
+  "Free",
+  "Vice Tower", "Chance", "Neon Hills", "Tax",
+  "Police",
+  "Ocean Tower", "Chance", "Vice Resort", "Luxury",
+  "Finish"
 ];
 
-/* Рисуем поле */
+/* Рисуем поле по периметру */
 function drawBoard() {
   board.innerHTML = "";
-  for (let i = 0; i < 40; i++) {
-    const cell = document.createElement("div");
-    cell.className = "cell " + (cells[i].price ? "property" : "special");
-    cell.innerText = cells[i].name;
-    board.appendChild(cell);
-  }
-}
-drawBoard();
 
-/* Кубики */
-document.getElementById("roll").onclick = () => {
-  const roll = Math.floor(Math.random() * 6) + 1;
-  move(roll);
+  // Углы
+  addCell(0, "corner", 82, 82);
+  addCell(10, "corner", 0, 82);
+  addCell(20, "corner", 0, 0);
+  addCell(30, "corner", 82, 0);
+
+  // Нижняя сторона
+  for (let i = 1; i < 10; i++) addCell(i, "edge bottom", 82 - i * 8, 82);
+
+  // Левая
+  for (let i = 11; i < 20; i++) addCell(i, "edge left", 0, 82 - (i - 10) * 8);
+
+  // Верхняя
+  for (let i = 21; i < 30; i++) addCell(i, "edge top", (i - 20) * 8, 0);
+
+  // Правая
+  for (let i = 31; i < 40; i++) addCell(i, "edge right", 82, (i - 30) * 8);
+}
+
+function addCell(i, cls, x, y) {
+  const cell = document.createElement("div");
+  cell.className = "cell " + cls;
+  cell.innerText = cells[i] || "";
+  cell.style.left = x + "%";
+  cell.style.top = y + "%";
+  board.appendChild(cell);
+}
+
+drawBoard();
+updateToken();
+
+/* Кубик */
+rollBtn.onclick = () => {
+  if (rolling) return;
+  rolling = true;
+  rollBtn.innerText = "⏳";
+
+  setTimeout(() => {
+    const roll = Math.floor(Math.random() * 6) + 1;
+    move(roll);
+    rollBtn.innerText = "🎲";
+    rolling = false;
+  }, 800);
 };
 
 function move(steps) {
-  position = (position + steps) % cells.length;
+  position = (position + steps) % 40;
   updateToken();
-  handleCell();
+  panel.style.display = "block";
+  panel.innerText = "Ход: " + steps;
 }
 
 function updateToken() {
   const cell = board.children[position];
-  const rect = cell.getBoundingClientRect();
-  const boardRect = board.getBoundingClientRect();
-
-  token.style.left = rect.left - boardRect.left + 10 + "px";
-  token.style.top = rect.top - boardRect.top + 10 + "px";
-}
-
-function handleCell() {
-  const cell = cells[position];
-  panel.style.display = "block";
-
-  if (cell.price) {
-    panel.innerHTML = `
-      <b>${cell.name}</b><br>
-      Цена: ⭐ ${cell.price}<br>
-      <button onclick="buy(${cell.price})">Купить</button>
-    `;
-  } else if (cell.type === "tax") {
-    money -= cell.value;
-    updateMoney();
-    panel.innerHTML = `Налог: -⭐ ${cell.value}`;
-  } else {
-    panel.innerHTML = cell.name;
-  }
-}
-
-function buy(price) {
-  if (money >= price) {
-    money -= price;
-    updateMoney();
-    panel.innerHTML = "Куплено ✔️";
-  }
-}
-
-function updateMoney() {
-  moneyEl.innerText = "⭐ " + money;
+  token.style.left = cell.style.left;
+  token.style.top = cell.style.top;
 }
