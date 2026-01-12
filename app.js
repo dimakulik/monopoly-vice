@@ -1,6 +1,3 @@
-/***********************
- * Telegram + iOS height fix
- ***********************/
 (function initTelegram(){
   try{
     const tg = window.Telegram?.WebApp;
@@ -14,9 +11,6 @@ function setAppHeight(){
   document.documentElement.style.setProperty("--appH", `${window.innerHeight}px`);
 }
 
-/***********************
- * FIT: translate + scale
- ***********************/
 function fitCanvas(){
   const canvas = document.getElementById("canvas");
   const viewport = document.getElementById("viewport");
@@ -51,14 +45,15 @@ function fitCanvas(){
 function onResize(){
   setAppHeight();
   fitCanvas();
-  placeTokens();
+  // после fit обязательно пересчитать фишки
+  requestAnimationFrame(placeTokens);
 }
 
 window.addEventListener("resize", onResize);
 window.addEventListener("orientationchange", onResize);
 
 /***********************
- * DATA (⭐ stars)
+ * DATA
  ***********************/
 const players = [
   { name:"Artemlasvegas", stars:22000, active:false },
@@ -68,7 +63,7 @@ const players = [
   { name:"Александр",     stars:25000, active:false },
 ];
 
-// 40 клеток — поменяй названия на свои
+// 40 клеток (замени на свои)
 const cells40 = Array.from({length:40}).map((_,i)=>({ id:i, name:`Поле ${i}` }));
 cells40[0].name="START";
 cells40[10].name="IN JAIL";
@@ -84,6 +79,7 @@ function escapeHtml(s){
 function formatNum(n){
   return (Number(n)||0).toLocaleString("ru-RU");
 }
+const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
 
 /***********************
  * RENDER PLAYERS
@@ -106,7 +102,7 @@ function renderPlayers(){
 }
 
 /***********************
- * RENDER 40 CELLS (classic monopoly order)
+ * RENDER CELLS
  ***********************/
 function renderCells(){
   const wrap = document.getElementById("cells");
@@ -131,24 +127,19 @@ function renderCells(){
     wrap.appendChild(c);
   }
 
-  // corners
   addCell(0, boardSize-corner, boardSize-corner, corner, corner, "corner");
   addCell(10, 0, boardSize-corner, corner, corner, "corner");
   addCell(20, 0, 0, corner, corner, "corner");
   addCell(30, boardSize-corner, 0, corner, corner, "corner");
 
-  // bottom 1..9
   for(let k=1;k<=9;k++) addCell(k, boardSize-corner-edgeW*k, boardSize-edgeH, edgeW, edgeH, "edge");
-  // left 11..19
   for(let k=1;k<=9;k++) addCell(10+k, 0, boardSize-corner-edgeW*k, edgeH, edgeW, "edge");
-  // top 21..29
   for(let k=1;k<=9;k++) addCell(20+k, corner+edgeW*(k-1), 0, edgeW, edgeH, "edge");
-  // right 31..39
   for(let k=1;k<=9;k++) addCell(30+k, boardSize-edgeH, corner+edgeW*(k-1), edgeH, edgeW, "edge");
 }
 
 /***********************
- * TOKENS (fixed with scale)
+ * TOKENS
  ***********************/
 const tokenState = { me:{index:0}, other:{index:5} };
 
@@ -168,7 +159,7 @@ function getCellCenter(i){
   const cr = cell.getBoundingClientRect();
   const br = board.getBoundingClientRect();
 
-  // делим на currentScale — иначе уедет
+  // ВАЖНО: делим на scale, чтобы фишки попадали в координаты board
   return {
     x: (cr.left - br.left + cr.width/2) / currentScale,
     y: (cr.top  - br.top  + cr.height/2) / currentScale
@@ -191,7 +182,7 @@ function placeTokens(){
 }
 
 /***********************
- * CHAT + DICE
+ * CHAT + DICE + ROLL
  ***********************/
 const chatLog = document.getElementById("chatLog");
 const chatInput = document.getElementById("chatInput");
@@ -222,20 +213,25 @@ function showDice(a,b){
   diceOverlay.classList.remove("hidden");
 }
 function hideDice(){ diceOverlay.classList.add("hidden"); }
-const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
 
-rollBtn.addEventListener("click", async ()=>{
+/* ВАЖНО: делаем обработчик клика максимально "железным" */
+rollBtn.addEventListener("click", async (e)=>{
+  e.preventDefault();
+  e.stopPropagation();
+
   const d1 = 1 + Math.floor(Math.random()*6);
   const d2 = 1 + Math.floor(Math.random()*6);
 
   addMsg(`dimakulik выбрасывает: ${d1}:${d2}`, "sys");
 
   showDice(d1,d2);
-  await sleep(700);
+  await sleep(650);
   hideDice();
 
   tokenState.me.index = (tokenState.me.index + d1 + d2) % 40;
-  placeTokens();
+
+  // после хода тоже лучше через rAF
+  requestAnimationFrame(placeTokens);
 });
 
 /***********************
@@ -245,7 +241,7 @@ renderPlayers();
 renderCells();
 renderTokens();
 
-addMsg("Если ты это видишь — JS работает ✅", "sys");
-addMsg("Звёзды отображаются как ⭐ ✅", "sys");
+addMsg("Кнопка должна кликаться ✅", "sys");
+addMsg("Если швов нет — клетки стыкуются ✅", "sys");
 
 onResize();
