@@ -26,13 +26,20 @@ body{
 .screen{
   height: var(--appH);
   width: 100vw;
-  display:grid;
-  place-items:center;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;   /* ВАЖНО: не center */
+  overflow:hidden;              /* чтобы не появлялись скроллы */
   padding:
     calc(10px + env(safe-area-inset-top))
-    10px
+    0
     calc(10px + env(safe-area-inset-bottom))
-    10px;
+    0;
+}
+
+/* холст прижимаем к левому краю */
+.canvas{
+  margin-left: 10px;
 }
 
 /* ВАЖНО: canvas не должен быть display:none или position:fixed от старого css */
