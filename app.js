@@ -94,7 +94,7 @@ function renderPlayers(){
 }
 
 /***********************
- * CELLS (перекрытие 2px)
+ * CELLS
  ***********************/
 function renderCells(){
   const wrap = document.getElementById("cells");
@@ -105,35 +105,28 @@ function renderCells(){
   const edgeW = 62;
   const edgeH = 92;
 
-  const OVERLAP = 2; // сильнее перекрытие => швов меньше на iPhone
+  const OVER = 2; // перекрытие против швов
 
   function addCell(i,x,y,w,h){
     const c = document.createElement("div");
     c.className = "cell";
     c.dataset.index = String(i);
-
     c.style.left = `${x}px`;
     c.style.top = `${y}px`;
-    c.style.width = `${w + OVERLAP}px`;
-    c.style.height = `${h + OVERLAP}px`;
-
+    c.style.width = `${w + OVER}px`;
+    c.style.height = `${h + OVER}px`;
     c.innerHTML = `<div class="label">${escapeHtml(cells40[i].name)}</div>`;
     wrap.appendChild(c);
   }
 
-  // corners
   addCell(0, boardSize-corner, boardSize-corner, corner, corner);
   addCell(10, 0, boardSize-corner, corner, corner);
   addCell(20, 0, 0, corner, corner);
   addCell(30, boardSize-corner, 0, corner, corner);
 
-  // bottom 1..9
   for(let k=1;k<=9;k++) addCell(k, boardSize-corner-edgeW*k, boardSize-edgeH, edgeW, edgeH);
-  // left 11..19
   for(let k=1;k<=9;k++) addCell(10+k, 0, boardSize-corner-edgeW*k, edgeH, edgeW);
-  // top 21..29
   for(let k=1;k<=9;k++) addCell(20+k, corner+edgeW*(k-1), 0, edgeW, edgeH);
-  // right 31..39
   for(let k=1;k<=9;k++) addCell(30+k, boardSize-edgeH, corner+edgeW*(k-1), edgeH, edgeW);
 }
 
@@ -141,6 +134,10 @@ function renderCells(){
  * TOKENS
  ***********************/
 const tokenState = { me:{index:0}, other:{index:5} };
+const tokenAnim = {
+  me: { x:0, y:0 },
+  other: { x:0, y:0 }
+};
 
 function renderTokens(){
   const wrap = document.getElementById("tokens");
@@ -164,30 +161,73 @@ function getCellCenter(i){
   };
 }
 
-function placeTokens(){
+function applyTokenPos(){
   const me = document.getElementById("t_me");
   const other = document.getElementById("t_other");
-  if(!me || !other) return;
+  if(me){
+    me.style.left = `${tokenAnim.me.x}px`;
+    me.style.top  = `${tokenAnim.me.y}px`;
+  }
+  if(other){
+    other.style.left = `${tokenAnim.other.x}px`;
+    other.style.top  = `${tokenAnim.other.y}px`;
+  }
+}
 
+function placeTokens(){
+  // ставим мгновенно по текущим индексам (например после resize)
   const p1 = getCellCenter(tokenState.me.index);
   const p2 = getCellCenter(tokenState.other.index);
-
-  me.style.left = `${p1.x}px`;
-  me.style.top  = `${p1.y}px`;
-
-  other.style.left = `${p2.x + 14}px`;
-  other.style.top  = `${p2.y + 14}px`;
+  tokenAnim.me.x = p1.x; tokenAnim.me.y = p1.y;
+  tokenAnim.other.x = p2.x + 14; tokenAnim.other.y = p2.y + 14;
+  applyTokenPos();
 }
 
 /***********************
- * STEP-BY-STEP MOVE (по одной клетке)
+ * Smooth animation helpers
  ***********************/
-async function moveTokenSteps(playerKey, steps){
+function easeInOut(t){
+  return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2;
+}
+
+function animateTo(playerKey, target, duration=180){
+  return new Promise((resolve)=>{
+    const startX = tokenAnim[playerKey].x;
+    const startY = tokenAnim[playerKey].y;
+    const dx = target.x - startX;
+    const dy = target.y - startY;
+
+    const t0 = performance.now();
+    function frame(now){
+      const t = Math.min((now - t0) / duration, 1);
+      const k = easeInOut(t);
+
+      tokenAnim[playerKey].x = startX + dx*k;
+      tokenAnim[playerKey].y = startY + dy*k;
+      applyTokenPos();
+
+      if(t < 1) requestAnimationFrame(frame);
+      else resolve();
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+/***********************
+ * STEP MOVE with smooth transitions
+ ***********************/
+async function moveTokenSmoothSteps(playerKey, steps){
   for(let s=0; s<steps; s++){
     tokenState[playerKey].index = (tokenState[playerKey].index + 1) % 40;
-    placeTokens();
-    // скорость шага (можешь менять)
-    await sleep(140);
+
+    const center = getCellCenter(tokenState[playerKey].index);
+    const target = (playerKey === "other")
+      ? { x: center.x + 14, y: center.y + 14 }
+      : { x: center.x, y: center.y };
+
+    // плавно едем к следующей клетке
+    await animateTo(playerKey, target, 160);
+    await sleep(30);
   }
 }
 
@@ -237,16 +277,13 @@ rollBtn.addEventListener("pointerup", async (e)=>{
   addMsg(`dimakulik выбрасывает: ${d1}:${d2}`, "sys");
 
   showDice(d1,d2);
-  await sleep(650);
+  await sleep(550);
   hideDice();
 
-  // ходим по одной клетке
-  await moveTokenSteps("me", steps);
+  await moveTokenSmoothSteps("me", steps);
 
   isRolling = false;
 });
-
-// страховка
 rollBtn.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); });
 
 /***********************
@@ -256,7 +293,7 @@ renderPlayers();
 renderCells();
 renderTokens();
 
-addMsg("Фишка должна идти по 1 клетке ✅", "sys");
-addMsg("Швы должны стать меньше/исчезнуть ✅", "sys");
+addMsg("Фишка теперь должна плавно ехать ✅", "sys");
+addMsg("Зазоры должны стать НЕ заметны (сеткой) ✅", "sys");
 
 onResize();
