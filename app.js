@@ -1,6 +1,6 @@
-// если этот код запустился — скрываем nojs баннер
-document.getElementById("nojs").style.display = "none";
-
+/***********************
+ * Telegram + iOS height fix
+ ***********************/
 (function initTelegram(){
   try{
     const tg = window.Telegram?.WebApp;
@@ -12,31 +12,52 @@ function setAppHeight(){
   document.documentElement.style.setProperty("--appH", `${window.innerHeight}px`);
 }
 
+/***********************
+ * FIT: translate + scale (чтобы ничего не уезжало)
+ ***********************/
 function fitCanvas(){
   const canvas = document.getElementById("canvas");
+  const viewport = document.getElementById("viewport");
   const root = document.documentElement;
 
   const W = parseInt(getComputedStyle(root).getPropertyValue("--canvasW"), 10);
   const H = parseInt(getComputedStyle(root).getPropertyValue("--canvasH"), 10);
 
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-
-  // В Telegram на iPhone центрирование ломает.
-  // Считаем scale так, чтобы по ширине холст влезал.
-  const paddingLeft = 10; // как в CSS margin-left
-  const availW = vw - paddingLeft;
-  const availH = vh - 20;
+  const vr = viewport.getBoundingClientRect();
+  const availW = vr.width;
+  const availH = vr.height;
 
   const s = Math.min(availW / W, availH / H, 1);
 
-  // ЛЕВЫЙ ЯКОРЬ (как monopoly-one)
-  canvas.style.transformOrigin = "left center";
-  canvas.style.transform = `scale(${s})`;
+  const scaledW = W * s;
+  const scaledH = H * s;
+
+  const offsetX = (availW - scaledW) / 2;
+  const offsetY = (availH - scaledH) / 2;
+
+  canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${s})`;
+
+  // debug
+  const dbg = document.getElementById("debug");
+  if(dbg){
+    dbg.textContent = `vw=${window.innerWidth} vh=${window.innerHeight} scale=${s.toFixed(3)} viewport=${availW.toFixed(0)}x${availH.toFixed(0)}`;
+  }
 
   return s;
 }
 
+function onResize(){
+  setAppHeight();
+  fitCanvas();
+  placeTokens();
+}
+
+window.addEventListener("resize", onResize);
+window.addEventListener("orientationchange", onResize);
+
+/***********************
+ * DATA
+ ***********************/
 const players = [
   { name:"Artemlasvegas", money:"$ 22,000k", active:false },
   { name:"Soloha", money:"$ 22,850k", active:true },
@@ -45,12 +66,16 @@ const players = [
   { name:"Александр", money:"$ 25,000k", active:false },
 ];
 
-const cells40 = Array.from({length:40}).map((_,i)=>({ id:i, name:`${i}`, icon:"" }));
+// 40 клеток (потом заменишь своими названиями/иконками)
+const cells40 = Array.from({length:40}).map((_,i)=>({ id:i, name:`CELL ${i}`, icon:"" }));
 cells40[0].name="START";
 cells40[10].name="IN JAIL";
 cells40[20].name="FREE";
 cells40[30].name="GO TO";
 
+/***********************
+ * RENDER PLAYERS
+ ***********************/
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
 }
@@ -72,6 +97,9 @@ function renderPlayers(){
   });
 }
 
+/***********************
+ * RENDER 40 CELLS (classic monopoly order)
+ ***********************/
 function renderCells(){
   const wrap = document.getElementById("cells");
   wrap.innerHTML = "";
@@ -89,7 +117,9 @@ function renderCells(){
     c.style.width = `${w}px`;
     c.style.height = `${h}px`;
     c.dataset.index = String(i);
-    c.innerHTML = `<div class="label">${escapeHtml(cells40[i].name)}</div>`;
+
+    const d = cells40[i];
+    c.innerHTML = `<div class="label">${escapeHtml(d.name)}</div>`;
     wrap.appendChild(c);
   }
 
@@ -109,6 +139,9 @@ function renderCells(){
   for(let k=1;k<=9;k++) addCell(30+k, boardSize-edgeH, corner+edgeW*(k-1), edgeH, edgeW, "edge");
 }
 
+/***********************
+ * TOKENS
+ ***********************/
 const tokenState = { me:{index:0}, other:{index:5} };
 
 function renderTokens(){
@@ -143,25 +176,14 @@ function placeTokens(){
   other.style.top  = `${p2.y + 14}px`;
 }
 
-function debugLine(scale){
-  const d = document.getElementById("debug");
-  d.textContent = `DEBUG: vw=${window.innerWidth} vh=${window.innerHeight} scale=${scale.toFixed(3)} canvas=${getComputedStyle(document.documentElement).getPropertyValue("--canvasW").trim()}x${getComputedStyle(document.documentElement).getPropertyValue("--canvasH").trim()}`;
-}
-
-function onResize(){
-  setAppHeight();
-  const s = fitCanvas();
-  placeTokens();
-  debugLine(s);
-}
-
-window.addEventListener("resize", onResize);
-window.addEventListener("orientationchange", onResize);
-
-/*** chat demo ***/
+/***********************
+ * CHAT + DICE
+ ***********************/
 const chatLog = document.getElementById("chatLog");
 const chatInput = document.getElementById("chatInput");
 const sendBtn = document.getElementById("sendBtn");
+const rollBtn = document.getElementById("rollBtn");
+const diceOverlay = document.getElementById("diceOverlay");
 
 function addMsg(text, cls=""){
   const el = document.createElement("div");
@@ -179,10 +201,35 @@ sendBtn.addEventListener("click", ()=>{
 });
 chatInput.addEventListener("keydown",(e)=>{ if(e.key==="Enter") sendBtn.click(); });
 
-/*** init ***/
+function showDice(a,b){
+  const faces = ["⚀","⚁","⚂","⚃","⚄","⚅"];
+  diceOverlay.querySelectorAll(".die")[0].textContent = faces[a-1];
+  diceOverlay.querySelectorAll(".die")[1].textContent = faces[b-1];
+  diceOverlay.classList.remove("hidden");
+}
+function hideDice(){ diceOverlay.classList.add("hidden"); }
+const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+
+rollBtn.addEventListener("click", async ()=>{
+  const d1 = 1 + Math.floor(Math.random()*6);
+  const d2 = 1 + Math.floor(Math.random()*6);
+  addMsg(`dimakulik выбрасывает: ${d1}:${d2}`, "sys");
+
+  showDice(d1,d2);
+  await sleep(700);
+  hideDice();
+
+  tokenState.me.index = (tokenState.me.index + d1 + d2) % 40;
+  placeTokens();
+});
+
+/***********************
+ * INIT
+ ***********************/
 renderPlayers();
 renderCells();
 renderTokens();
-addMsg("Если ты это видишь — JS работает ✅", "sys");
-addMsg("Если клетки по периметру есть — верстка работает ✅", "sys");
+addMsg("JS работает ✅ (видишь это сообщение)", "sys");
+addMsg("Если поле и игроки видны — layout ок ✅", "sys");
+
 onResize();
