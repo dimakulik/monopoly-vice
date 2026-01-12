@@ -5,62 +5,49 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
   <title>Monopoly TG</title>
 
-  <!-- Telegram Mini App -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
   <link rel="stylesheet" href="./style.css" />
 </head>
-
 <body>
-  <div id="app" class="game">
-    <!-- LEFT: PLAYERS -->
-    <aside class="players" id="players"></aside>
+  <!-- экран (центрирует холст) -->
+  <div class="screen">
+    <!-- “десктопный холст” как на monopoly-one (его будем scale-ить целиком) -->
+    <div id="canvas" class="canvas">
+      <!-- слева игроки -->
+      <aside id="players" class="players"></aside>
 
-    <!-- CENTER: BOARD + HUD -->
-    <main class="stage">
-      <div class="boardWrap">
-        <!-- scalable board -->
+      <!-- справа игровая зона -->
+      <main class="gameArea">
+        <!-- поле -->
         <div id="board" class="board">
-          <!-- ring cells rendered by JS -->
           <div id="cells" class="cells"></div>
-
-          <!-- tokens layer -->
           <div id="tokens" class="tokens"></div>
-
-          <!-- center panel (dark empty area like monopoly-one) -->
           <div class="centerVoid"></div>
         </div>
 
-        <!-- HUD overlays -->
+        <!-- HUD поверх центра (как на monopoly-one) -->
         <div class="hud">
-          <!-- turn banner -->
           <div id="turnBanner" class="turnBanner hidden">
             <div class="turnTitle">Ваш ход!</div>
             <div class="turnSub">Вперёд, к новым победам!</div>
             <button id="rollBtn" class="btn">Бросить кубики</button>
           </div>
 
-          <!-- chat -->
           <div class="chat">
-            <div class="chatLog" id="chatLog"></div>
+            <div id="chatLog" class="chatLog"></div>
             <div class="chatInput">
-              <select id="chatTo" class="chatSelect">
-                <option value="all">Всем</option>
-                <option value="table">Стол</option>
-              </select>
               <input id="chatInput" type="text" placeholder="Введите сообщение..." />
               <button id="sendBtn" class="btn mini">▶</button>
             </div>
           </div>
 
-          <!-- dice overlay -->
           <div id="diceOverlay" class="diceOverlay hidden">
             <div class="die">⚄</div>
             <div class="die">⚁</div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   </div>
 
   <script src="./app.js"></script>
