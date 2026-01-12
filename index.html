@@ -7,8 +7,19 @@
 </head>
 <body>
 
-<h1>MONOPOLY VICE</h1>
+<!-- HUD -->
+<div class="hud">
+    <div class="player-info">
+        <div class="avatar">😎</div>
+        <div class="name">PLAYER</div>
+    </div>
 
+    <div class="stars">
+        ⭐ <span id="stars">500</span>
+    </div>
+</div>
+
+<!-- GAME BOARD -->
 <div class="board">
     <div class="cell start">START</div>
     <div class="cell">Vice St</div>
@@ -17,14 +28,18 @@
     <div class="cell">Casino Rd</div>
     <div class="cell">Beach Way</div>
     <div class="cell">Hotel Dr</div>
-    <div class="cell">JAIL</div>
+    <div class="cell jail">JAIL</div>
 
     <div class="player" id="player"></div>
 </div>
 
-<button id="roll">🎲 Бросить кубик</button>
-    <div id="money"></div>
-<p id="log"></p>
+<!-- ACTION -->
+<div class="action-panel">
+    <button id="roll">🎲 ROLL</button>
+</div>
+
+<!-- LOG -->
+<div class="log" id="log">Добро пожаловать в Monopoly Vice</div>
 
 <script src="app.js"></script>
 </body>
