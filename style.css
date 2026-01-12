@@ -24,8 +24,7 @@ body{
 
 .screen{ height:var(--appH); width:100vw; overflow:hidden; position:relative; padding:0; }
 .viewport{
-  position:absolute;
-  left:10px; right:10px;
+  position:absolute; left:10px; right:10px;
   top: calc(10px + env(safe-area-inset-top));
   bottom: calc(10px + env(safe-area-inset-bottom));
   overflow:hidden;
@@ -72,13 +71,18 @@ body{
   z-index:1;
 }
 
-/* Подложка под клетки — если микро-щели появятся, будет не белая "дыра", а тёмная линия как в оригинале */
+/* СЕТКА подложкой (линии всегда ровные) */
 .gridFill{
   position:absolute; inset:0;
-  background:#0d0914;
   z-index:0;
+  /* линии 1px: горизонтальные + вертикальные */
+  background:
+    repeating-linear-gradient(to right, #111 0 1px, transparent 1px 62px),
+    repeating-linear-gradient(to bottom, #111 0 1px, transparent 1px 62px);
+  opacity:1;
 }
 
+/* слой клеток */
 .cells{
   position:absolute; inset:0;
   z-index:1;
@@ -86,6 +90,20 @@ body{
   transform: translateZ(0);
   backface-visibility:hidden;
 }
+
+/* клетки БЕЗ границ, границы даёт gridFill */
+.cell{
+  position:absolute;
+  background:#fff;
+  overflow:hidden;
+}
+.cell .label{
+  position:absolute; bottom:3px; left:3px; right:3px;
+  font-size:10px; font-weight:900; color:#111;
+  text-align:center;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
 .tokens{ position:absolute; inset:0; z-index:2; pointer-events:none; }
 
 .centerVoid{
@@ -97,35 +115,18 @@ body{
   z-index:0;
 }
 
-/* СУПЕР-ФИКС швов:
-   - делаем клетки с box-shadow (не border/outline)
-   - и JS делает перекрытие 2px
-*/
-.cell{
-  position:absolute;
-  background:#fff;
-  overflow:hidden;
-  box-shadow: inset 0 0 0 1px #111; /* “граница” без швов */
-}
-.cell .label{
-  position:absolute; bottom:3px; left:3px; right:3px;
-  font-size:10px; font-weight:900; color:#111;
-  text-align:center;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-
 /* tokens */
 .token{
-  position:absolute; width:18px; height:18px; border-radius:50%;
+  position:absolute;
+  width:18px;height:18px;border-radius:50%;
   border:2px solid #00000055;
   box-shadow:0 10px 20px #00000055;
   transform:translate(-50%,-50%);
-  transition: transform 120ms linear; /* лёгкая плавность */
 }
 .token.you{background:#5ffcff;}
 .token.other{background:#ff4b6e;}
 
-/* HUD поверх */
+/* HUD */
 .hud{ position:absolute; inset:0; z-index:20; pointer-events:none; }
 .turnBanner, .chat, .btn, .chatInput, .chatInput input{ pointer-events:auto; }
 
