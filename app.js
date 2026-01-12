@@ -6,6 +6,7 @@
 })();
 
 let currentScale = 1;
+let isRolling = false;
 
 function setAppHeight(){
   document.documentElement.style.setProperty("--appH", `${window.innerHeight}px`);
@@ -26,18 +27,13 @@ function fitCanvas(){
   const s = Math.min(availW / W, availH / H, 1);
   currentScale = s;
 
-  const scaledW = W * s;
-  const scaledH = H * s;
-
-  const offsetX = (availW - scaledW) / 2;
-  const offsetY = (availH - scaledH) / 2;
+  const offsetX = (availW - W*s) / 2;
+  const offsetY = (availH - H*s) / 2;
 
   canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${s})`;
 
   const dbg = document.getElementById("debug");
-  if(dbg){
-    dbg.textContent = `scale=${s.toFixed(3)} viewport=${availW.toFixed(0)}x${availH.toFixed(0)}`;
-  }
+  if(dbg) dbg.textContent = `scale=${s.toFixed(3)} viewport=${availW.toFixed(0)}x${availH.toFixed(0)}`;
 }
 
 function onResize(){
@@ -98,7 +94,7 @@ function renderPlayers(){
 }
 
 /***********************
- * CELLS (перекрытие на 1px чтобы убрать швы)
+ * CELLS (перекрытие 2px)
  ***********************/
 function renderCells(){
   const wrap = document.getElementById("cells");
@@ -109,35 +105,36 @@ function renderCells(){
   const edgeW = 62;
   const edgeH = 92;
 
-  const OVERLAP = 1; // ключ к отсутствию швов
+  const OVERLAP = 2; // сильнее перекрытие => швов меньше на iPhone
 
-  function addCell(i,x,y,w,h,type){
+  function addCell(i,x,y,w,h){
     const c = document.createElement("div");
-    c.className = `cell ${type} ${w>h ? "h":""}`.trim();
-
-    // увеличиваем на 1px чтобы клетки перекрывали швы
-    const ww = w + OVERLAP;
-    const hh = h + OVERLAP;
+    c.className = "cell";
+    c.dataset.index = String(i);
 
     c.style.left = `${x}px`;
     c.style.top = `${y}px`;
-    c.style.width = `${ww}px`;
-    c.style.height = `${hh}px`;
+    c.style.width = `${w + OVERLAP}px`;
+    c.style.height = `${h + OVERLAP}px`;
 
-    c.dataset.index = String(i);
     c.innerHTML = `<div class="label">${escapeHtml(cells40[i].name)}</div>`;
     wrap.appendChild(c);
   }
 
-  addCell(0, boardSize-corner, boardSize-corner, corner, corner, "corner");
-  addCell(10, 0, boardSize-corner, corner, corner, "corner");
-  addCell(20, 0, 0, corner, corner, "corner");
-  addCell(30, boardSize-corner, 0, corner, corner, "corner");
+  // corners
+  addCell(0, boardSize-corner, boardSize-corner, corner, corner);
+  addCell(10, 0, boardSize-corner, corner, corner);
+  addCell(20, 0, 0, corner, corner);
+  addCell(30, boardSize-corner, 0, corner, corner);
 
-  for(let k=1;k<=9;k++) addCell(k, boardSize-corner-edgeW*k, boardSize-edgeH, edgeW, edgeH, "edge");
-  for(let k=1;k<=9;k++) addCell(10+k, 0, boardSize-corner-edgeW*k, edgeH, edgeW, "edge");
-  for(let k=1;k<=9;k++) addCell(20+k, corner+edgeW*(k-1), 0, edgeW, edgeH, "edge");
-  for(let k=1;k<=9;k++) addCell(30+k, boardSize-edgeH, corner+edgeW*(k-1), edgeH, edgeW, "edge");
+  // bottom 1..9
+  for(let k=1;k<=9;k++) addCell(k, boardSize-corner-edgeW*k, boardSize-edgeH, edgeW, edgeH);
+  // left 11..19
+  for(let k=1;k<=9;k++) addCell(10+k, 0, boardSize-corner-edgeW*k, edgeH, edgeW);
+  // top 21..29
+  for(let k=1;k<=9;k++) addCell(20+k, corner+edgeW*(k-1), 0, edgeW, edgeH);
+  // right 31..39
+  for(let k=1;k<=9;k++) addCell(30+k, boardSize-edgeH, corner+edgeW*(k-1), edgeH, edgeW);
 }
 
 /***********************
@@ -183,6 +180,18 @@ function placeTokens(){
 }
 
 /***********************
+ * STEP-BY-STEP MOVE (по одной клетке)
+ ***********************/
+async function moveTokenSteps(playerKey, steps){
+  for(let s=0; s<steps; s++){
+    tokenState[playerKey].index = (tokenState[playerKey].index + 1) % 40;
+    placeTokens();
+    // скорость шага (можешь менять)
+    await sleep(140);
+  }
+}
+
+/***********************
  * CHAT + DICE + ROLL
  ***********************/
 const chatLog = document.getElementById("chatLog");
@@ -215,13 +224,15 @@ function showDice(a,b){
 }
 function hideDice(){ diceOverlay.classList.add("hidden"); }
 
-/* клик железно */
 rollBtn.addEventListener("pointerup", async (e)=>{
   e.preventDefault();
   e.stopPropagation();
+  if(isRolling) return;
+  isRolling = true;
 
   const d1 = 1 + Math.floor(Math.random()*6);
   const d2 = 1 + Math.floor(Math.random()*6);
+  const steps = d1 + d2;
 
   addMsg(`dimakulik выбрасывает: ${d1}:${d2}`, "sys");
 
@@ -229,11 +240,13 @@ rollBtn.addEventListener("pointerup", async (e)=>{
   await sleep(650);
   hideDice();
 
-  tokenState.me.index = (tokenState.me.index + d1 + d2) % 40;
-  requestAnimationFrame(placeTokens);
+  // ходим по одной клетке
+  await moveTokenSteps("me", steps);
+
+  isRolling = false;
 });
 
-// на случай если pointerup не сработает в старом webview:
+// страховка
 rollBtn.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); });
 
 /***********************
@@ -243,7 +256,7 @@ renderPlayers();
 renderCells();
 renderTokens();
 
-addMsg("Кнопка должна кликаться ✅", "sys");
-addMsg("Швов между клетками быть не должно ✅", "sys");
+addMsg("Фишка должна идти по 1 клетке ✅", "sys");
+addMsg("Швы должны стать меньше/исчезнуть ✅", "sys");
 
 onResize();
