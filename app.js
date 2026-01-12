@@ -8,12 +8,14 @@
   }catch(e){}
 })();
 
+let currentScale = 1;
+
 function setAppHeight(){
   document.documentElement.style.setProperty("--appH", `${window.innerHeight}px`);
 }
 
 /***********************
- * FIT: translate + scale (чтобы ничего не уезжало)
+ * FIT: translate + scale
  ***********************/
 function fitCanvas(){
   const canvas = document.getElementById("canvas");
@@ -28,6 +30,7 @@ function fitCanvas(){
   const availH = vr.height;
 
   const s = Math.min(availW / W, availH / H, 1);
+  currentScale = s;
 
   const scaledW = W * s;
   const scaledH = H * s;
@@ -37,10 +40,9 @@ function fitCanvas(){
 
   canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${s})`;
 
-  // debug
   const dbg = document.getElementById("debug");
   if(dbg){
-    dbg.textContent = `vw=${window.innerWidth} vh=${window.innerHeight} scale=${s.toFixed(3)} viewport=${availW.toFixed(0)}x${availH.toFixed(0)}`;
+    dbg.textContent = `scale=${s.toFixed(3)} viewport=${availW.toFixed(0)}x${availH.toFixed(0)}`;
   }
 
   return s;
@@ -56,30 +58,36 @@ window.addEventListener("resize", onResize);
 window.addEventListener("orientationchange", onResize);
 
 /***********************
- * DATA
+ * DATA (⭐ stars)
  ***********************/
 const players = [
-  { name:"Artemlasvegas", money:"$ 22,000k", active:false },
-  { name:"Soloha", money:"$ 22,850k", active:true },
-  { name:"dimakulik", money:"$ 25,000k", active:false },
-  { name:"Анна", money:"$ 25,000k", active:false },
-  { name:"Александр", money:"$ 25,000k", active:false },
+  { name:"Artemlasvegas", stars:22000, active:false },
+  { name:"Soloha",        stars:22850, active:true  },
+  { name:"dimakulik",     stars:25000, active:false },
+  { name:"Анна",          stars:25000, active:false },
+  { name:"Александр",     stars:25000, active:false },
 ];
 
-// 40 клеток (потом заменишь своими названиями/иконками)
-const cells40 = Array.from({length:40}).map((_,i)=>({ id:i, name:`CELL ${i}`, icon:"" }));
+// 40 клеток — поменяй названия на свои
+const cells40 = Array.from({length:40}).map((_,i)=>({ id:i, name:`Поле ${i}` }));
 cells40[0].name="START";
 cells40[10].name="IN JAIL";
 cells40[20].name="FREE";
 cells40[30].name="GO TO";
 
 /***********************
- * RENDER PLAYERS
+ * HELPERS
  ***********************/
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
 }
+function formatNum(n){
+  return (Number(n)||0).toLocaleString("ru-RU");
+}
 
+/***********************
+ * RENDER PLAYERS
+ ***********************/
 function renderPlayers(){
   const wrap = document.getElementById("players");
   wrap.innerHTML = "";
@@ -90,7 +98,7 @@ function renderPlayers(){
       <div class="avatar"></div>
       <div class="meta">
         <div class="name">${escapeHtml(p.name)}</div>
-        <div class="money">${escapeHtml(p.money)}</div>
+        <div class="money">⭐ ${formatNum(p.stars)}</div>
       </div>
     `;
     wrap.appendChild(el);
@@ -140,7 +148,7 @@ function renderCells(){
 }
 
 /***********************
- * TOKENS
+ * TOKENS (fixed with scale)
  ***********************/
 const tokenState = { me:{index:0}, other:{index:5} };
 
@@ -156,9 +164,15 @@ function getCellCenter(i){
   const cell = document.querySelector(`.cell[data-index="${i}"]`);
   const board = document.getElementById("board");
   if(!cell || !board) return {x:0,y:0};
+
   const cr = cell.getBoundingClientRect();
   const br = board.getBoundingClientRect();
-  return { x: cr.left - br.left + cr.width/2, y: cr.top - br.top + cr.height/2 };
+
+  // делим на currentScale — иначе уедет
+  return {
+    x: (cr.left - br.left + cr.width/2) / currentScale,
+    y: (cr.top  - br.top  + cr.height/2) / currentScale
+  };
 }
 
 function placeTokens(){
@@ -213,6 +227,7 @@ const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
 rollBtn.addEventListener("click", async ()=>{
   const d1 = 1 + Math.floor(Math.random()*6);
   const d2 = 1 + Math.floor(Math.random()*6);
+
   addMsg(`dimakulik выбрасывает: ${d1}:${d2}`, "sys");
 
   showDice(d1,d2);
@@ -229,7 +244,8 @@ rollBtn.addEventListener("click", async ()=>{
 renderPlayers();
 renderCells();
 renderTokens();
-addMsg("JS работает ✅ (видишь это сообщение)", "sys");
-addMsg("Если поле и игроки видны — layout ок ✅", "sys");
+
+addMsg("Если ты это видишь — JS работает ✅", "sys");
+addMsg("Звёзды отображаются как ⭐ ✅", "sys");
 
 onResize();
