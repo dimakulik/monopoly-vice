@@ -22,80 +22,49 @@ body{
   color:var(--text);
 }
 
-.screen{
-  height: var(--appH);
-  width: 100vw;
-  overflow:hidden;
-  position:relative;
-  padding:0;
-}
-
+.screen{ height:var(--appH); width:100vw; overflow:hidden; position:relative; padding:0; }
 .viewport{
   position:absolute;
-  left: 10px;
-  right: 10px;
+  left:10px; right:10px;
   top: calc(10px + env(safe-area-inset-top));
   bottom: calc(10px + env(safe-area-inset-bottom));
   overflow:hidden;
 }
 
 .canvas{
-  position:absolute;
-  left:0;
-  top:0;
-  width: var(--canvasW);
-  height: var(--canvasH);
+  position:absolute; left:0; top:0;
+  width:var(--canvasW); height:var(--canvasH);
   display:grid;
   grid-template-columns: var(--playersW) 1fr;
   gap: var(--gap);
-  transform-origin: 0 0;
+  transform-origin:0 0;
   will-change: transform;
 }
 
-/* PLAYERS */
-.players{
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  overflow:hidden;
-}
-
+/* players */
+.players{ display:flex; flex-direction:column; gap:10px; overflow:hidden; }
 .playerCard{
   border:1px solid var(--stroke);
   border-radius:12px;
   padding:10px;
   background: linear-gradient(180deg, #160c24cc, #0b0712cc);
-  display:flex;
-  gap:10px;
-  align-items:center;
+  display:flex; gap:10px; align-items:center;
   min-height:66px;
 }
 .playerCard.active{ outline:2px solid #5ffcdf55; }
-
 .avatar{
   width:42px;height:42px;border-radius:999px;
   background: linear-gradient(135deg,#5ffcff,#9f5bff);
   border:2px solid #00000033;
-  flex:0 0 auto;
 }
-.meta{min-width:0;}
 .name{font-weight:900;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .money{margin-top:3px;font-size:12px;font-weight:900;color:#ffd56a;}
 
-/* GAME AREA */
-.gameArea{
-  position:relative;
-  width:100%;
-  height:100%;
-  overflow:hidden;
-  display:grid;
-  place-items:center;
-}
+/* game */
+.gameArea{ position:relative; width:100%; height:100%; display:grid; place-items:center; }
 
-/* BOARD */
 .board{
-  width: 760px;
-  height: 760px;
+  width:760px; height:760px;
   position:relative;
   background:#0d0914;
   border:1px solid var(--stroke);
@@ -103,109 +72,90 @@ body{
   z-index:1;
 }
 
-/* клетки НЕ должны перехватывать клики */
-.cells{
-  position:absolute;
-  inset:0;
-  z-index:1;
-  pointer-events:none;           /* ВАЖНО */
-  transform: translateZ(0);
-  backface-visibility: hidden;
+/* Подложка под клетки — если микро-щели появятся, будет не белая "дыра", а тёмная линия как в оригинале */
+.gridFill{
+  position:absolute; inset:0;
+  background:#0d0914;
+  z-index:0;
 }
 
-.tokens{
-  position:absolute;
-  inset:0;
+.cells{
+  position:absolute; inset:0;
+  z-index:1;
   pointer-events:none;
-  z-index:2;
+  transform: translateZ(0);
+  backface-visibility:hidden;
 }
+.tokens{ position:absolute; inset:0; z-index:2; pointer-events:none; }
 
 .centerVoid{
   position:absolute;
-  left:16%;top:16%;
-  width:68%;height:68%;
+  left:16%; top:16%;
+  width:68%; height:68%;
   background:#2b2b2b;
   border:1px solid #00000055;
   z-index:0;
 }
 
-/* CELLS (без швов — клетки будут перекрывать друг друга на 1px в JS) */
+/* СУПЕР-ФИКС швов:
+   - делаем клетки с box-shadow (не border/outline)
+   - и JS делает перекрытие 2px
+*/
 .cell{
   position:absolute;
   background:#fff;
   overflow:hidden;
-  outline: 1px solid #00000055;
-  outline-offset: -1px;
+  box-shadow: inset 0 0 0 1px #111; /* “граница” без швов */
 }
-
-.cell.corner{width:92px;height:92px;}
-.cell.edge{width:62px;height:92px;}
-.cell.edge.h{width:92px;height:62px;}
-
 .cell .label{
-  position:absolute;bottom:3px;left:3px;right:3px;
-  font-size:10px;font-weight:900;color:#111;text-align:center;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  position:absolute; bottom:3px; left:3px; right:3px;
+  font-size:10px; font-weight:900; color:#111;
+  text-align:center;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
 }
 
-/* TOKENS */
+/* tokens */
 .token{
-  position:absolute;width:18px;height:18px;border-radius:50%;
+  position:absolute; width:18px; height:18px; border-radius:50%;
   border:2px solid #00000055;
   box-shadow:0 10px 20px #00000055;
-  transform: translate(-50%,-50%);
+  transform:translate(-50%,-50%);
+  transition: transform 120ms linear; /* лёгкая плавность */
 }
 .token.you{background:#5ffcff;}
 .token.other{background:#ff4b6e;}
 
-/* HUD — ПОВЕРХ ДОСКИ */
-.hud{
-  position:absolute;
-  inset:0;
-  z-index:20;          /* ВАЖНО: выше board */
-  pointer-events:none; /* клики только на нужных блоках */
-}
-
-/* интерактив */
-.turnBanner, .chat, .btn, .chatInput, .chatInput input{
-  pointer-events:auto;
-}
+/* HUD поверх */
+.hud{ position:absolute; inset:0; z-index:20; pointer-events:none; }
+.turnBanner, .chat, .btn, .chatInput, .chatInput input{ pointer-events:auto; }
 
 .turnBanner{
-  position:absolute;left:50%;
-  top: 90px;
-  transform: translateX(-50%);
-  width: 560px;
-  background:#fff;color:#15111f;
-  outline: 1px solid #00000022;
+  position:absolute; left:50%; top:90px;
+  transform:translateX(-50%);
+  width:560px;
+  background:#fff; color:#15111f;
   border-radius:10px;
+  box-shadow: inset 0 0 0 1px #00000022;
   padding:10px 12px;
 }
 .turnTitle{font-weight:900;font-size:14px;}
 .turnSub{font-size:12px;opacity:.8;margin-top:2px;}
 
 .chat{
-  position:absolute;left:50%;
-  top: 190px;
-  transform: translateX(-50%);
-  width: 560px;
-  height: 380px;
-  background: var(--panel);
-  outline: 1px solid var(--stroke);
+  position:absolute; left:50%; top:190px;
+  transform:translateX(-50%);
+  width:560px; height:380px;
+  background:var(--panel);
   border-radius:10px;
+  box-shadow: inset 0 0 0 1px var(--stroke);
   overflow:hidden;
-  display:flex;
-  flex-direction:column;
+  display:flex; flex-direction:column;
 }
 .chatLog{flex:1;padding:10px;overflow:auto;font-size:12px;line-height:1.35;}
 .msg{margin:0 0 6px 0;color:#d7d2ff;}
 .msg.sys{color:#ffcf7a;}
 .msg.you{color:#9af1ff;}
-
-.chatInput{
-  border-top:1px solid var(--stroke);
-  display:flex;gap:8px;padding:8px;align-items:center;
-}
+.chatInput{border-top:1px solid var(--stroke);display:flex;gap:8px;padding:8px;align-items:center;}
 .chatInput input{
   flex:1;height:36px;border-radius:10px;
   border:1px solid #ffffff22;background:#0f0b18;color:var(--text);
@@ -215,8 +165,6 @@ body{
 .btn{
   height:38px;border:none;border-radius:10px;
   background:#2bd3a9;color:#062017;font-weight:900;cursor:pointer;
-
-  /* iOS/TG клики */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
@@ -224,24 +172,22 @@ body{
 .btn.mini{width:44px;height:36px;}
 
 .diceOverlay{
-  position:absolute;left:50%;top:50%;
+  position:absolute; left:50%; top:50%;
   transform: translate(-50%,-45%);
-  display:flex;gap:14px;
+  display:flex; gap:14px;
   pointer-events:none;
 }
 .die{
   width:76px;height:76px;border-radius:16px;
-  background:#fff;outline:1px solid #00000022;
+  background:#fff;
+  box-shadow: inset 0 0 0 1px #00000022, 0 24px 44px #00000066;
   display:grid;place-items:center;
   font-size:44px;
-  box-shadow:0 24px 44px #00000066;
 }
 .hidden{display:none;}
 
 .debug{
-  position:absolute;
-  left:10px;
-  bottom:10px;
+  position:absolute; left:10px; bottom:10px;
   padding:8px 10px;
   border-radius:10px;
   border:1px solid #ffffff22;
@@ -250,6 +196,6 @@ body{
   pointer-events:none;
 }
 
-@media (max-width: 520px){
-  :root{ --playersW: 118px; --gap: 10px; }
+@media (max-width:520px){
+  :root{ --playersW:118px; --gap:10px; }
 }
