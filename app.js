@@ -11,6 +11,7 @@ const cells = [
 
 let position = 0;
 let money = 500;
+
 const player = document.getElementById("player");
 const log = document.getElementById("log");
 
@@ -21,6 +22,12 @@ function movePlayer() {
 
 function updateLog(text) {
     log.innerText = `💰 Деньги: $${money}\n${text}`;
+}
+
+function sendToBot(data) {
+    if (window.Telegram && Telegram.WebApp) {
+        Telegram.WebApp.sendData(JSON.stringify(data));
+    }
 }
 
 document.getElementById("roll").onclick = () => {
@@ -45,6 +52,14 @@ document.getElementById("roll").onclick = () => {
     } else {
         updateLog(`Ты на клетке ${cell.name}`);
     }
+
+    sendToBot({
+        action: "roll",
+        dice: dice,
+        position: position,
+        money: money,
+        cell: cell.name
+    });
 };
 
 movePlayer();
