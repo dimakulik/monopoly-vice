@@ -1,65 +1,68 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Monopoly Vice</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+  <title>Monopoly TG</title>
+
+  <!-- Telegram Mini App -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <link rel="stylesheet" href="./style.css" />
 </head>
+
 <body>
+  <div id="app" class="game">
+    <!-- LEFT: PLAYERS -->
+    <aside class="players" id="players"></aside>
 
-<div class="topbar">
-  <div class="me">
-    <div class="avatar"></div>
-    <div class="meinfo">
-      <div class="name" id="meName">PLAYER</div>
-      <div class="stars">⭐ <span id="meStars">1450</span></div>
-    </div>
-  </div>
+    <!-- CENTER: BOARD + HUD -->
+    <main class="stage">
+      <div class="boardWrap">
+        <!-- scalable board -->
+        <div id="board" class="board">
+          <!-- ring cells rendered by JS -->
+          <div id="cells" class="cells"></div>
 
-  <div class="actions">
-    <button class="diceBtn" id="rollBtn" title="Roll">🎲</button>
-  </div>
-</div>
+          <!-- tokens layer -->
+          <div id="tokens" class="tokens"></div>
 
-<div class="layout">
-  <!-- LEFT PLAYERS -->
-  <aside class="playersPanel">
-    <div class="playersTitle">Players</div>
-    <div class="playersList" id="playersList"></div>
-  </aside>
+          <!-- center panel (dark empty area like monopoly-one) -->
+          <div class="centerVoid"></div>
+        </div>
 
-  <!-- BOARD -->
-  <div class="stage">
-    <div class="board" id="board">
-      <div class="token" id="token"></div>
-
-      <!-- CENTER CHAT OVERLAY (как на 2-м скрине) -->
-      <div class="centerOverlay">
-        <div class="centerChat">
-          <div class="centerHeader">
-            <div class="centerBrand">
-              <div class="brandTop">MONOPOLY</div>
-              <div class="brandBottom">VICE</div>
-            </div>
-            <div class="centerHint">лог игры + чат</div>
+        <!-- HUD overlays -->
+        <div class="hud">
+          <!-- turn banner -->
+          <div id="turnBanner" class="turnBanner hidden">
+            <div class="turnTitle">Ваш ход!</div>
+            <div class="turnSub">Вперёд, к новым победам!</div>
+            <button id="rollBtn" class="btn">Бросить кубики</button>
           </div>
 
-          <div class="centerBody" id="chatBody"></div>
+          <!-- chat -->
+          <div class="chat">
+            <div class="chatLog" id="chatLog"></div>
+            <div class="chatInput">
+              <select id="chatTo" class="chatSelect">
+                <option value="all">Всем</option>
+                <option value="table">Стол</option>
+              </select>
+              <input id="chatInput" type="text" placeholder="Введите сообщение..." />
+              <button id="sendBtn" class="btn mini">▶</button>
+            </div>
+          </div>
 
-          <form class="centerInput" id="chatForm">
-            <input id="chatInput" placeholder="Введите сообщение…" autocomplete="off" />
-            <button type="submit">Send</button>
-          </form>
+          <!-- dice overlay -->
+          <div id="diceOverlay" class="diceOverlay hidden">
+            <div class="die">⚄</div>
+            <div class="die">⚁</div>
+          </div>
         </div>
       </div>
-    </div>
+    </main>
   </div>
-</div>
 
-<!-- bottom action panel -->
-<div class="bottomPanel" id="bottomPanel"></div>
-
-<script src="app.js"></script>
+  <script src="./app.js"></script>
 </body>
 </html>
