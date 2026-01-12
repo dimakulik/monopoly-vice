@@ -224,3 +224,11 @@ body{
   border-radius:12px;
   font-weight:900;
 }
+
+@media (max-width: 520px){
+  /* на телефоне уменьшаем ширину колонки игроков как на monopoly-one */
+  :root{
+    --playersW: 118px;
+    --gap: 10px;
+  }
+}
