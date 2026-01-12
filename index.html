@@ -1,37 +1,68 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Monopoly Vice</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<div class="hud">
-  <div class="player">
-    <div class="avatar"></div>
-    <div>
-      <div class="name" id="playerName">PLAYER</div>
-      <div class="money" id="money">⭐ 1500</div>
+<div class="app">
+  <!-- LEFT: players -->
+  <aside class="side left">
+    <div class="side-title">Players</div>
+    <div class="players" id="players"></div>
+
+    <div class="side-footer">
+      <button class="btn small ghost" id="addBotPlayers">+ demo players</button>
     </div>
-  </div>
+  </aside>
 
-  <button id="roll" aria-label="Roll dice">🎲</button>
-</div>
+  <!-- CENTER: board -->
+  <main class="center">
+    <div class="topbar">
+      <div class="me">
+        <div class="avatar big" id="meAvatar"></div>
+        <div class="me-info">
+          <div class="me-name" id="meName">PLAYER</div>
+          <div class="me-stars">⭐ <span id="meStars">1500</span></div>
+        </div>
+      </div>
 
-<div class="game">
-  <div class="board" id="board">
-    <div class="center">
-      <div>
-        <h1>Monopoly<br>Vice</h1>
-        <p>⭐ вместо денег · Neon rules</p>
+      <div class="controls">
+        <button class="dice-btn" id="rollBtn" title="Roll">🎲</button>
       </div>
     </div>
-  </div>
-  <div class="token" id="token"></div>
+
+    <div class="board-wrap">
+      <div class="board" id="board">
+        <div class="center-card">
+          <div class="brand">
+            <div class="brand-title">MONOPOLY</div>
+            <div class="brand-sub">VICE EDITION</div>
+          </div>
+          <div class="hint">⭐ вместо денег · neon vibes</div>
+        </div>
+      </div>
+      <div class="token" id="token"></div>
+    </div>
+  </main>
+
+  <!-- RIGHT: chat -->
+  <aside class="side right">
+    <div class="side-title">Chat / Log</div>
+
+    <div class="chat" id="chat"></div>
+
+    <form class="chat-input" id="chatForm">
+      <input id="chatText" placeholder="Напиши сообщение…" autocomplete="off" />
+      <button class="btn primary" type="submit">Send</button>
+    </form>
+  </aside>
 </div>
 
+<!-- bottom action panel -->
 <div class="panel" id="panel"></div>
 
 <script src="app.js"></script>
