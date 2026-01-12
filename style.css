@@ -1,26 +1,57 @@
 body {
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    font-family: 'Arial', sans-serif;
+    background: radial-gradient(circle at top, #2b1055, #000);
     color: #fff;
+    font-family: Arial, sans-serif;
     text-align: center;
 }
 
 h1 {
     color: #ff00ff;
-    text-shadow: 0 0 10px #ff00ff;
+    text-shadow: 0 0 15px #ff00ff;
 }
 
 .board {
-    display: flex;
-    justify-content: center;
-    margin: 20px;
+    position: relative;
+    width: 420px;
+    height: 420px;
+    margin: 30px auto;
+    border: 3px solid #00ffff;
+    box-shadow: 0 0 30px #00ffff;
 }
 
 .cell {
-    border: 2px solid #00ffff;
-    padding: 20px;
-    margin: 5px;
+    position: absolute;
+    width: 100px;
+    height: 60px;
+    border: 1px solid #00ffff;
     box-shadow: 0 0 10px #00ffff;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cell:nth-child(1) { top: 0; left: 0; }
+.cell:nth-child(2) { top: 0; left: 110px; }
+.cell:nth-child(3) { top: 0; left: 220px; }
+.cell:nth-child(4) { top: 0; left: 330px; }
+
+.cell:nth-child(5) { top: 110px; right: 0; transform: rotate(90deg); }
+.cell:nth-child(6) { top: 220px; right: 0; transform: rotate(90deg); }
+
+.cell:nth-child(7) { bottom: 0; left: 220px; }
+.cell:nth-child(8) { bottom: 0; left: 110px; }
+
+.player {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: #ff0080;
+    border-radius: 50%;
+    box-shadow: 0 0 15px #ff0080;
+    top: 20px;
+    left: 20px;
+    transition: all 0.4s ease;
 }
 
 button {
@@ -31,8 +62,4 @@ button {
     color: white;
     cursor: pointer;
     box-shadow: 0 0 15px #ff0080;
-}
-
-button:hover {
-    background: #ff4da6;
 }
