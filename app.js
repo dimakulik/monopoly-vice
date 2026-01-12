@@ -1,3 +1,6 @@
+// если этот код запустился — скрываем nojs баннер
+document.getElementById("nojs").style.display = "none";
+
 (function initTelegram(){
   try{
     const tg = window.Telegram?.WebApp;
@@ -9,36 +12,24 @@ function setAppHeight(){
   document.documentElement.style.setProperty("--appH", `${window.innerHeight}px`);
 }
 
-/* ВАЖНО: scale() применяем к #canvas (весь холст), а не к board */
 function fitCanvas(){
   const canvas = document.getElementById("canvas");
-  if(!canvas) return;
-
   const root = document.documentElement;
+
   const W = parseInt(getComputedStyle(root).getPropertyValue("--canvasW"), 10);
   const H = parseInt(getComputedStyle(root).getPropertyValue("--canvasH"), 10);
 
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  // padding screen примерно 20px сверху/снизу (в style.css)
   const availW = vw - 20;
   const availH = vh - 20;
 
   const s = Math.min(availW / W, availH / H, 1);
   canvas.style.transform = `scale(${s})`;
+  return s;
 }
 
-function onResize(){
-  setAppHeight();
-  fitCanvas();
-  placeTokens();
-}
-
-window.addEventListener("resize", onResize);
-window.addEventListener("orientationchange", onResize);
-
-/*** DEMO DATA ***/
 const players = [
   { name:"Artemlasvegas", money:"$ 22,000k", active:false },
   { name:"Soloha", money:"$ 22,850k", active:true },
@@ -47,16 +38,16 @@ const players = [
   { name:"Александр", money:"$ 25,000k", active:false },
 ];
 
-// 40 клеток — подставь свои названия/иконки
-const cells40 = Array.from({length:40}).map((_,i)=>({
-  id:i, name:`CELL ${i}`, icon:""
-}));
+const cells40 = Array.from({length:40}).map((_,i)=>({ id:i, name:`${i}`, icon:"" }));
 cells40[0].name="START";
 cells40[10].name="IN JAIL";
 cells40[20].name="FREE";
 cells40[30].name="GO TO";
 
-/*** RENDER PLAYERS ***/
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+}
+
 function renderPlayers(){
   const wrap = document.getElementById("players");
   wrap.innerHTML = "";
@@ -74,7 +65,6 @@ function renderPlayers(){
   });
 }
 
-/*** RENDER 40 CELLS (classic monopoly order) ***/
 function renderCells(){
   const wrap = document.getElementById("cells");
   wrap.innerHTML = "";
@@ -91,13 +81,8 @@ function renderCells(){
     c.style.top = `${y}px`;
     c.style.width = `${w}px`;
     c.style.height = `${h}px`;
-
-    const d = cells40[i];
-    c.innerHTML = `
-      ${d.icon ? `<img class="icon" src="${d.icon}" alt="">` : ``}
-      <div class="label">${escapeHtml(d.name)}</div>
-    `;
     c.dataset.index = String(i);
+    c.innerHTML = `<div class="label">${escapeHtml(cells40[i].name)}</div>`;
     wrap.appendChild(c);
   }
 
@@ -107,25 +92,16 @@ function renderCells(){
   addCell(20, 0, 0, corner, corner, "corner");
   addCell(30, boardSize-corner, 0, corner, corner, "corner");
 
-  // bottom 1..9 (right->left)
-  for(let k=1;k<=9;k++){
-    addCell(k, boardSize-corner-edgeW*k, boardSize-edgeH, edgeW, edgeH, "edge");
-  }
-  // left 11..19 (bottom->top)
-  for(let k=1;k<=9;k++){
-    addCell(10+k, 0, boardSize-corner-edgeW*k, edgeH, edgeW, "edge");
-  }
-  // top 21..29 (left->right)
-  for(let k=1;k<=9;k++){
-    addCell(20+k, corner+edgeW*(k-1), 0, edgeW, edgeH, "edge");
-  }
-  // right 31..39 (top->bottom)
-  for(let k=1;k<=9;k++){
-    addCell(30+k, boardSize-edgeH, corner+edgeW*(k-1), edgeH, edgeW, "edge");
-  }
+  // bottom 1..9
+  for(let k=1;k<=9;k++) addCell(k, boardSize-corner-edgeW*k, boardSize-edgeH, edgeW, edgeH, "edge");
+  // left 11..19
+  for(let k=1;k<=9;k++) addCell(10+k, 0, boardSize-corner-edgeW*k, edgeH, edgeW, "edge");
+  // top 21..29
+  for(let k=1;k<=9;k++) addCell(20+k, corner+edgeW*(k-1), 0, edgeW, edgeH, "edge");
+  // right 31..39
+  for(let k=1;k<=9;k++) addCell(30+k, boardSize-edgeH, corner+edgeW*(k-1), edgeH, edgeW, "edge");
 }
 
-/*** TOKENS ***/
 const tokenState = { me:{index:0}, other:{index:5} };
 
 function renderTokens(){
@@ -140,10 +116,8 @@ function getCellCenter(i){
   const cell = document.querySelector(`.cell[data-index="${i}"]`);
   const board = document.getElementById("board");
   if(!cell || !board) return {x:0,y:0};
-
   const cr = cell.getBoundingClientRect();
   const br = board.getBoundingClientRect();
-  // токены позиционируются в координатах board (он не scale-ится отдельно)
   return { x: cr.left - br.left + cr.width/2, y: cr.top - br.top + cr.height/2 };
 }
 
@@ -162,13 +136,25 @@ function placeTokens(){
   other.style.top  = `${p2.y + 14}px`;
 }
 
-/*** CHAT + TURN + DICE ***/
+function debugLine(scale){
+  const d = document.getElementById("debug");
+  d.textContent = `DEBUG: vw=${window.innerWidth} vh=${window.innerHeight} scale=${scale.toFixed(3)} canvas=${getComputedStyle(document.documentElement).getPropertyValue("--canvasW").trim()}x${getComputedStyle(document.documentElement).getPropertyValue("--canvasH").trim()}`;
+}
+
+function onResize(){
+  setAppHeight();
+  const s = fitCanvas();
+  placeTokens();
+  debugLine(s);
+}
+
+window.addEventListener("resize", onResize);
+window.addEventListener("orientationchange", onResize);
+
+/*** chat demo ***/
 const chatLog = document.getElementById("chatLog");
 const chatInput = document.getElementById("chatInput");
 const sendBtn = document.getElementById("sendBtn");
-const rollBtn = document.getElementById("rollBtn");
-const diceOverlay = document.getElementById("diceOverlay");
-const turnBanner = document.getElementById("turnBanner");
 
 function addMsg(text, cls=""){
   const el = document.createElement("div");
@@ -186,40 +172,10 @@ sendBtn.addEventListener("click", ()=>{
 });
 chatInput.addEventListener("keydown",(e)=>{ if(e.key==="Enter") sendBtn.click(); });
 
-function showTurn(on){ turnBanner.classList.toggle("hidden", !on); }
-function showDice(a,b){
-  const faces = ["⚀","⚁","⚂","⚃","⚄","⚅"];
-  diceOverlay.querySelectorAll(".die")[0].textContent = faces[a-1];
-  diceOverlay.querySelectorAll(".die")[1].textContent = faces[b-1];
-  diceOverlay.classList.remove("hidden");
-}
-function hideDice(){ diceOverlay.classList.add("hidden"); }
-const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
-
-rollBtn.addEventListener("click", async ()=>{
-  const d1 = 1 + Math.floor(Math.random()*6);
-  const d2 = 1 + Math.floor(Math.random()*6);
-  addMsg(`dimakulik выбрасывает: ${d1}:${d2}`, "sys");
-  showDice(d1,d2);
-
-  await sleep(700);
-  hideDice();
-
-  tokenState.me.index = (tokenState.me.index + d1 + d2) % 40;
-  placeTokens();
-});
-
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-}
-
-/*** INIT ***/
+/*** init ***/
 renderPlayers();
 renderCells();
 renderTokens();
-addMsg("Artemlasvegas выбрасывает 1:5", "sys");
-addMsg("Soloha покупает Circle+ за 1,400k", "");
-addMsg("dimakulik — Стала", "you");
-showTurn(true);
-
+addMsg("Если ты это видишь — JS работает ✅", "sys");
+addMsg("Если клетки по периметру есть — верстка работает ✅", "sys");
 onResize();
