@@ -22,11 +22,18 @@ function fitCanvas(){
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  const availW = vw - 20;
+  // В Telegram на iPhone центрирование ломает.
+  // Считаем scale так, чтобы по ширине холст влезал.
+  const paddingLeft = 10; // как в CSS margin-left
+  const availW = vw - paddingLeft;
   const availH = vh - 20;
 
   const s = Math.min(availW / W, availH / H, 1);
+
+  // ЛЕВЫЙ ЯКОРЬ (как monopoly-one)
+  canvas.style.transformOrigin = "left center";
   canvas.style.transform = `scale(${s})`;
+
   return s;
 }
 
