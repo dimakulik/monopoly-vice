@@ -24,7 +24,8 @@ body{
 
 .screen{ height:var(--appH); width:100vw; overflow:hidden; position:relative; padding:0; }
 .viewport{
-  position:absolute; left:10px; right:10px;
+  position:absolute;
+  left:10px; right:10px;
   top: calc(10px + env(safe-area-inset-top));
   bottom: calc(10px + env(safe-area-inset-bottom));
   overflow:hidden;
@@ -71,60 +72,10 @@ body{
   z-index:1;
 }
 
-/* СЕТКА подложкой (линии всегда ровные) */
-.gridFill{
-  position:absolute; inset:0;
-  z-index:0;
-  /* линии 1px: горизонтальные + вертикальные */
-  background:
-    repeating-linear-gradient(to right, #111 0 1px, transparent 1px 62px),
-    repeating-linear-gradient(to bottom, #111 0 1px, transparent 1px 62px);
-  opacity:1;
+#boardCanvas{
+  width:760px; height:760px;
+  display:block;
 }
-
-/* слой клеток */
-.cells{
-  position:absolute; inset:0;
-  z-index:1;
-  pointer-events:none;
-  transform: translateZ(0);
-  backface-visibility:hidden;
-}
-
-/* клетки БЕЗ границ, границы даёт gridFill */
-.cell{
-  position:absolute;
-  background:#fff;
-  overflow:hidden;
-}
-.cell .label{
-  position:absolute; bottom:3px; left:3px; right:3px;
-  font-size:10px; font-weight:900; color:#111;
-  text-align:center;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-
-.tokens{ position:absolute; inset:0; z-index:2; pointer-events:none; }
-
-.centerVoid{
-  position:absolute;
-  left:16%; top:16%;
-  width:68%; height:68%;
-  background:#2b2b2b;
-  border:1px solid #00000055;
-  z-index:0;
-}
-
-/* tokens */
-.token{
-  position:absolute;
-  width:18px;height:18px;border-radius:50%;
-  border:2px solid #00000055;
-  box-shadow:0 10px 20px #00000055;
-  transform:translate(-50%,-50%);
-}
-.token.you{background:#5ffcff;}
-.token.other{background:#ff4b6e;}
 
 /* HUD */
 .hud{ position:absolute; inset:0; z-index:20; pointer-events:none; }
