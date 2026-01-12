@@ -1,16 +1,27 @@
 const board = document.getElementById("board");
 const token = document.getElementById("token");
 const panel = document.getElementById("panel");
-const moneyEl = document.getElementById("money");
-const rollBtn = document.getElementById("roll");
-const playerNameEl = document.getElementById("playerName");
 
-// ⭐ баланс
+const playersEl = document.getElementById("players");
+const chatEl = document.getElementById("chat");
+
+const meNameEl = document.getElementById("meName");
+const meStarsEl = document.getElementById("meStars");
+const rollBtn = document.getElementById("rollBtn");
+
+const chatForm = document.getElementById("chatForm");
+const chatText = document.getElementById("chatText");
+const addBotPlayers = document.getElementById("addBotPlayers");
+
+/* ====== DEMO STATE (потом подключим к мультиплееру/боту) ====== */
 let stars = 1500;
 let position = 0;
 let rolling = false;
 
-// Палитры “как Monopoly One по ощущению”, но Vice
+let players = [
+  { id: "me", name: "PLAYER", stars: 1500, tag: "YOU" },
+];
+
 const COLORSETS = [
   ["#7C3AED","#A78BFA"], // purple
   ["#06B6D4","#67E8F9"], // cyan
@@ -20,8 +31,7 @@ const COLORSETS = [
   ["#3B82F6","#93C5FD"], // blue
 ];
 
-// 40 клеток: уникальные названия (свои) + типы
-// (без копирования оригинальных названий/ассетов)
+/* 40 клеток (свои названия, типы как в монополии) */
 const CELLS = [
   { type:"start", name:"START", bar:["#00F6FF","#FF2BD6"] },
 
@@ -78,19 +88,76 @@ const CELLS = [
   { type:"prop", name:"VICE ICON", price:400, rent:50, set:0 },
 ];
 
-const ownedByMe = new Set(); // MVP: один игрок
+const ownedByMe = new Set();
 
-function star(n){ return `⭐ ${n}`; }
-function clamp0(n){ return Math.max(0, n); }
+/* ====== UI HELPERS ====== */
+function fmtStars(n){ return `⭐ ${n}`; }
+function nowTime(){
+  const d = new Date();
+  return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+}
+function addLog(who, text){
+  const el = document.createElement("div");
+  el.className = "msg";
+  el.innerHTML = `
+    <div class="mhead">
+      <div class="who">${escapeHtml(who)}</div>
+      <div class="time">${nowTime()}</div>
+    </div>
+    <div class="text">${escapeHtml(text)}</div>
+  `;
+  chatEl.appendChild(el);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+function escapeHtml(s){
+  return String(s)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function renderPlayers(){
+  playersEl.innerHTML = "";
+  for(const p of players){
+    const card = document.createElement("div");
+    card.className = "player-card";
+    card.innerHTML = `
+      <div class="avatar"></div>
+      <div class="pmeta">
+        <div class="pname">${escapeHtml(p.name)}</div>
+        <div class="pstars">${fmtStars(p.stars)}</div>
+      </div>
+      <div class="ptag">${escapeHtml(p.tag || "")}</div>
+    `;
+    playersEl.appendChild(card);
+  }
+}
+
+/* ====== BOARD RENDER (40 perimeter coords) ====== */
+function isCorner(i){ return i===0 || i===10 || i===20 || i===30; }
+function isHorizontal(i){ return (i>0 && i<10) || (i>20 && i<30); }
+
+function getPerimeterCoords(){
+  const coords = [];
+  coords.push({x:82,y:82});                // 0 corner (bottom-right)
+  for(let k=1;k<=9;k++) coords.push({x:82-k*8,y:82});
+  coords.push({x:0,y:82});                 // 10 corner (bottom-left)
+  for(let k=1;k<=9;k++) coords.push({x:0,y:82-k*8});
+  coords.push({x:0,y:0});                  // 20 corner (top-left)
+  for(let k=1;k<=9;k++) coords.push({x:k*8,y:0});
+  coords.push({x:82,y:0});                 // 30 corner (top-right)
+  for(let k=1;k<=9;k++) coords.push({x:82,y:k*8});
+  return coords; // 40
+}
 
 function renderBoard(){
+  // remove existing cells only
   board.querySelectorAll(".cell").forEach(n=>n.remove());
-
-  // Периметр 11x11: координаты в процентах
-  // Углы (0,10,20,30)
   const coords = getPerimeterCoords();
 
-  for (let i=0;i<40;i++){
+  for(let i=0;i<40;i++){
     const c = CELLS[i];
     const el = document.createElement("div");
     el.className = "cell" + (isCorner(i) ? " corner" : "");
@@ -99,7 +166,6 @@ function renderBoard(){
     el.style.width  = (isCorner(i) ? "18%" : (isHorizontal(i) ? "8%" : "18%"));
     el.style.height = (isCorner(i) ? "18%" : (isHorizontal(i) ? "18%" : "8%"));
 
-    // полоска цвета (как в Monopoly One)
     let bar = c.bar;
     if (!bar && c.type === "prop"){
       const [a,b] = COLORSETS[c.set % COLORSETS.length];
@@ -107,14 +173,21 @@ function renderBoard(){
     }
     if (!bar) bar = ["#2dd4bf","#a78bfa"];
 
+    const badge = badgeFor(c, i);
+    const right = rightText(c, i);
+
     el.innerHTML = `
       <div class="bar" style="background:linear-gradient(90deg, ${bar[0]}, ${bar[1]})"></div>
-      <div class="label">${c.name}</div>
+      <div class="label">${escapeHtml(c.name)}</div>
       <div class="sub">
-        <span class="badge">${badgeFor(c, i)}</span>
-        <span>${priceText(c, i)}</span>
+        <span class="badge">${escapeHtml(badge)}</span>
+        <span>${escapeHtml(right)}</span>
       </div>
     `;
+
+    // click on cell -> open info
+    el.addEventListener("click", () => openCellPanel(i));
+
     board.appendChild(el);
   }
 }
@@ -132,36 +205,12 @@ function badgeFor(c, i){
   return "";
 }
 
-function priceText(c, i){
+function rightText(c, i){
   if (c.type==="prop" || c.type==="station" || c.type==="utility"){
-    return ownedByMe.has(i) ? "" : star(c.price);
+    return ownedByMe.has(i) ? "" : fmtStars(c.price);
   }
-  if (c.type==="tax") return `-${star(c.value)}`;
+  if (c.type==="tax") return `-${fmtStars(c.value).slice(2)}`; // "-⭐ N"
   return "";
-}
-
-function isCorner(i){ return i===0 || i===10 || i===20 || i===30; }
-function isHorizontal(i){ return (i>0 && i<10) || (i>20 && i<30); }
-
-function getPerimeterCoords(){
-  // координаты по периметру, чтобы было “как Monopoly”
-  // нижняя сторона: 0..10 (0 правый низ угол, 10 левый низ угол) — мы делаем старт в правом нижнем?
-  // Чтобы проще: пусть 0 = правый нижний угол (как ощущение “старт”), дальше идём влево.
-  const coords = [];
-  // Нижняя: x 82..0 шаг 8, y 82
-  coords.push({x:82,y:82}); // 0 corner
-  for(let k=1;k<=9;k++) coords.push({x:82-k*8,y:82});
-  coords.push({x:0,y:82}); // 10 corner
-  // Левая: y 74..8 шаг 8, x 0
-  for(let k=1;k<=9;k++) coords.push({x:0,y:82-k*8});
-  coords.push({x:0,y:0}); // 20 corner
-  // Верхняя: x 8..74 шаг 8, y 0
-  for(let k=1;k<=9;k++) coords.push({x:k*8,y:0});
-  coords.push({x:82,y:0}); // 30 corner
-  // Правая: y 8..74 шаг 8, x 82
-  for(let k=1;k<=9;k++) coords.push({x:82,y:k*8});
-
-  return coords; // 40
 }
 
 function updateToken(){
@@ -170,35 +219,80 @@ function updateToken(){
   token.style.top  = (coords[position].y + 2) + "%";
 }
 
+/* ====== PANEL / GAME ACTIONS ====== */
 function openPanel(html){
   panel.style.display = "block";
   panel.innerHTML = html;
 }
+function closePanel(){ panel.style.display = "none"; }
 
-function closePanel(){
-  panel.style.display = "none";
+function openCellPanel(i){
+  const c = CELLS[i];
+  if (c.type==="prop" || c.type==="station" || c.type==="utility"){
+    const owned = ownedByMe.has(i);
+    openPanel(`
+      <div class="title">${escapeHtml(c.name)}</div>
+      <div class="row"><span>Цена</span><span>${fmtStars(c.price)}</span></div>
+      <div class="row"><span>Рента</span><span>${fmtStars(c.rent || 10)}</span></div>
+      <div class="actions">
+        <button class="btn primary" id="buyBtn" ${owned ? "disabled":""}>${owned ? "Уже твоё" : "Купить"}</button>
+        <button class="btn ghost" id="closeBtn">Закрыть</button>
+      </div>
+    `);
+
+    document.getElementById("closeBtn").onclick = closePanel;
+    document.getElementById("buyBtn").onclick = () => {
+      if (owned) return;
+      if (stars < c.price){
+        addLog("SYSTEM", `Не хватает ⭐ чтобы купить ${c.name}`);
+        return;
+      }
+      stars -= c.price;
+      ownedByMe.add(i);
+      meStarsEl.textContent = String(stars);
+      renderBoard();
+      addLog("SYSTEM", `Ты купил ${c.name} за ⭐ ${c.price}`);
+      closePanel();
+    };
+    return;
+  }
+
+  if (c.type==="tax"){
+    openPanel(`
+      <div class="title">${escapeHtml(c.name)}</div>
+      <div class="row"><span>Оплата</span><span>-⭐ ${c.value}</span></div>
+      <div class="actions"><button class="btn ghost" id="closeBtn">Ок</button></div>
+    `);
+    document.getElementById("closeBtn").onclick = closePanel;
+    return;
+  }
+
+  openPanel(`
+    <div class="title">${escapeHtml(c.name)}</div>
+    <div class="row"><span>Тип</span><span>${escapeHtml(c.type)}</span></div>
+    <div class="actions"><button class="btn ghost" id="closeBtn">Ок</button></div>
+  `);
+  document.getElementById("closeBtn").onclick = closePanel;
 }
 
 function applyCell(){
   const c = CELLS[position];
 
   if (c.type==="start"){
-    // small bonus feeling
     stars += 50;
-    moneyEl.textContent = star(stars);
-    openPanel(`<div class="title">START</div><div class="row"><span>Бонус</span><span>+${star(50)}</span></div>`);
+    meStarsEl.textContent = String(stars);
+    addLog("SYSTEM", `START бонус: +⭐ 50`);
     return;
   }
 
   if (c.type==="tax"){
-    stars = clamp0(stars - c.value);
-    moneyEl.textContent = star(stars);
-    openPanel(`<div class="title">${c.name}</div><div class="row"><span>Оплата</span><span>-${star(c.value)}</span></div>`);
+    stars = Math.max(0, stars - c.value);
+    meStarsEl.textContent = String(stars);
+    addLog("SYSTEM", `${c.name}: -⭐ ${c.value}`);
     return;
   }
 
   if (c.type==="chance"){
-    // MVP: простые события
     const events = [
       {t:"Ночной бонус", d:+100},
       {t:"Штраф за парковку", d:-75},
@@ -206,71 +300,42 @@ function applyCell(){
       {t:"Лимузин", d:-50},
     ];
     const e = events[Math.floor(Math.random()*events.length)];
-    stars = clamp0(stars + e.d);
-    moneyEl.textContent = star(stars);
-    openPanel(`<div class="title">CHANCE</div><div class="row"><span>${e.t}</span><span>${e.d>0?"+":""}${star(Math.abs(e.d))}</span></div>`);
+    stars = Math.max(0, stars + e.d);
+    meStarsEl.textContent = String(stars);
+    addLog("CHANCE", `${e.t}: ${e.d>0?"+":"-"}⭐ ${Math.abs(e.d)}`);
     return;
   }
 
   if (c.type==="gotojail"){
-    position = 10; // “jail”
+    position = 10; // jail
     updateToken();
-    openPanel(`<div class="title">GO TO JAIL</div><div class="row"><span>Переход</span><span>В тюрьму</span></div>`);
+    addLog("SYSTEM", `GO TO JAIL → IN JAIL`);
     return;
   }
 
-  if (c.type==="jail" || c.type==="parking"){
-    openPanel(`<div class="title">${c.name}</div><div class="row"><span>Событие</span><span>Отдых</span></div>`);
+  // landing on buyable
+  if (c.type==="prop" || c.type==="station" || c.type==="utility"){
+    addLog("SYSTEM", `Ты на клетке: ${c.name} (${fmtStars(c.price)})`);
+    // auto-open panel to buy
+    openCellPanel(position);
     return;
   }
 
-  // Покупка клеток
-  if ((c.type==="prop" || c.type==="station" || c.type==="utility")){
-    const owned = ownedByMe.has(position);
-    const canBuy = !owned && stars >= c.price;
-
-    openPanel(`
-      <div class="title">${c.name}</div>
-      <div class="row"><span>Цена</span><span>${star(c.price)}</span></div>
-      <div class="row"><span>Рента</span><span>${star(c.rent || 10)}</span></div>
-      <div class="actions">
-        <button class="btn primary" ${canBuy ? "" : "disabled"} id="buyBtn">${owned ? "Уже твоё" : (canBuy ? "Купить" : "Не хватает ⭐")}</button>
-        <button class="btn ghost" id="closeBtn">Ок</button>
-      </div>
-    `);
-
-    const buyBtn = document.getElementById("buyBtn");
-    const closeBtn = document.getElementById("closeBtn");
-
-    closeBtn.onclick = closePanel;
-
-    buyBtn.onclick = () => {
-      if (owned) return closePanel;
-      if (stars < c.price) return;
-      stars -= c.price;
-      ownedByMe.add(position);
-      moneyEl.textContent = star(stars);
-      renderBoard(); // обновим бейджи/цену
-      openPanel(`<div class="title">Куплено ✔</div><div class="row"><span>${c.name}</span><span>теперь твоё</span></div>
-      <div class="actions"><button class="btn ghost" id="ok2">Ок</button></div>`);
-      document.getElementById("ok2").onclick = closePanel;
-    };
-
-    return;
-  }
+  addLog("SYSTEM", `Ты на клетке: ${c.name}`);
 }
 
+/* ====== CONTROLS ====== */
 rollBtn.onclick = () => {
   if (rolling) return;
   rolling = true;
   rollBtn.disabled = true;
   rollBtn.classList.add("rolling");
 
-  // “анимация” + случай
   setTimeout(() => {
     const roll = Math.floor(Math.random()*6) + 1;
     position = (position + roll) % 40;
     updateToken();
+    addLog("PLAYER", `🎲 rolled ${roll}`);
     applyCell();
 
     rollBtn.classList.remove("rolling");
@@ -279,9 +344,31 @@ rollBtn.onclick = () => {
   }, 650);
 };
 
-// Init (имя можно позже получить из Telegram.WebApp)
-playerNameEl.textContent = "PLAYER";
-moneyEl.textContent = star(stars);
+/* ====== CHAT ====== */
+chatForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const txt = chatText.value.trim();
+  if (!txt) return;
+  addLog(players[0].name, txt);
+  chatText.value = "";
+});
 
+/* ====== DEMO PLAYERS BUTTON ====== */
+addBotPlayers.onclick = () => {
+  players = [
+    { id:"me", name:"PLAYER", stars: stars, tag:"YOU" },
+    { id:"p2", name:"Ruppert", stars: 3829, tag:"" },
+    { id:"p3", name:"Bennett", stars: 11159, tag:"" },
+    { id:"p4", name:"Esteban", stars: 2220, tag:"" },
+  ];
+  renderPlayers();
+  addLog("SYSTEM", "Добавлены demo players (позже подключим реальные из Telegram).");
+};
+
+/* ====== INIT ====== */
+meNameEl.textContent = "PLAYER";
+meStarsEl.textContent = String(stars);
+renderPlayers();
 renderBoard();
 updateToken();
+addLog("SYSTEM", "UI готов. Следующий шаг: настоящие аватары/ники из Telegram и мультиплеер.");
