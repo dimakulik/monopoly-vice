@@ -5,9 +5,7 @@ const bottomPanel = document.getElementById("bottomPanel");
 const meStarsEl = document.getElementById("meStars");
 const rollBtn = document.getElementById("rollBtn");
 
-const chatPanel = document.getElementById("chatPanel");
-const chatToggle = document.getElementById("chatToggle");
-const chatClose = document.getElementById("chatClose");
+const playersList = document.getElementById("playersList");
 const chatBody = document.getElementById("chatBody");
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
@@ -15,6 +13,14 @@ const chatInput = document.getElementById("chatInput");
 let stars = 1450;
 let position = 0;
 let rolling = false;
+
+/* DEMO players (как на 2-м скрине слева) */
+let players = [
+  { id:"p1", name:"Bennett", stars:11159, badge:"" },
+  { id:"p2", name:"Ruppert", stars:3829, badge:"" },
+  { id:"p3", name:"Esteban", stars:2220, badge:"" },
+  { id:"me", name:"PLAYER", stars:stars, badge:"YOU" },
+];
 
 const COLORSETS = [
   ["#7C3AED","#A78BFA"],
@@ -27,7 +33,6 @@ const COLORSETS = [
 
 const CELLS = [
   { type:"start", name:"START", bar:["#00F6FF","#FF2BD6"], emoji:"🚀", icon:"star" },
-
   { type:"prop", name:"Vice Street", price:60, rent:2, set:0, emoji:"🌴", icon:"palm" },
   { type:"chance", name:"CHANCE", emoji:"❓", icon:"question" },
   { type:"prop", name:"Neon Avenue", price:60, rent:4, set:0, emoji:"🌈", icon:"neon" },
@@ -83,7 +88,6 @@ const CELLS = [
 
 const ownedByMe = new Set();
 
-function fmtStars(n){ return `⭐ ${n}`; }
 function escapeHtml(s){
   return String(s)
     .replaceAll("&","&amp;")
@@ -110,38 +114,43 @@ function addLog(who, text){
   chatBody.scrollTop = chatBody.scrollHeight;
 }
 
-/* CHAT */
-chatToggle.onclick = () => chatPanel.classList.add("open");
-chatClose.onclick = () => chatPanel.classList.remove("open");
-chatForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const txt = chatInput.value.trim();
-  if (!txt) return;
-  addLog("YOU", txt);
-  chatInput.value = "";
-});
+function renderPlayers(){
+  // обновим PLAYER в списке по текущему балансу
+  players = players.map(p => p.id==="me" ? {...p, stars} : p);
 
-/* === координаты периметра: СТАБИЛЬНО, без DOM === */
+  playersList.innerHTML = "";
+  for(const p of players){
+    const el = document.createElement("div");
+    el.className = "pcard";
+    el.innerHTML = `
+      <div class="pavatar"></div>
+      <div class="pmeta">
+        <div class="pname">${escapeHtml(p.name)}</div>
+        <div class="pstars">⭐ ${p.stars.toLocaleString()}</div>
+      </div>
+      <div class="pbadge">${escapeHtml(p.badge || "")}</div>
+    `;
+    playersList.appendChild(el);
+  }
+}
+
+/* === coords perim === */
 function getPerimeterCoords(){
   const coords = [];
-  // 0 corner bottom-right
   coords.push({x:82,y:82});
   for(let k=1;k<=9;k++) coords.push({x:82-k*8,y:82});
-  // 10 corner bottom-left
   coords.push({x:0,y:82});
   for(let k=1;k<=9;k++) coords.push({x:0,y:82-k*8});
-  // 20 corner top-left
   coords.push({x:0,y:0});
   for(let k=1;k<=9;k++) coords.push({x:k*8,y:0});
-  // 30 corner top-right
   coords.push({x:82,y:0});
   for(let k=1;k<=9;k++) coords.push({x:82,y:k*8});
-  return coords; // 40
+  return coords;
 }
 function isCorner(i){ return i===0 || i===10 || i===20 || i===30; }
 function isHorizontal(i){ return (i>0 && i<10) || (i>20 && i<30); }
 
-/* SVG (если не покажется — эмодзи всё равно будет) */
+/* icons */
 function iconSvg(name){
   const stroke = "rgba(255,255,255,0.85)";
   const fill = "rgba(0,246,255,0.18)";
@@ -149,17 +158,17 @@ function iconSvg(name){
   const svg = (body) => `<svg class="icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">${body}</svg>`;
   switch(name){
     case "question": return svg(`<path d="M12 18h.01" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/><path d="M9.5 9a2.5 2.5 0 1 1 4.5 1.5c-.9.7-1.5 1.1-1.5 2.5" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/>`);
-    case "coin": return svg(`<circle cx="12" cy="12" r="7" fill="${fill}" stroke="${stroke}" stroke-width="2"/><path d="M9.5 12h5" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/>`);
-    case "train": return svg(`<rect x="7" y="4" width="10" height="12" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="2"/><path d="M8 16l-2 4M16 16l2 4" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/><path d="M9 8h6" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/>`);
+    case "coin": return svg(`<circle cx="12" cy="12" r="7" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`);
+    case "train": return svg(`<rect x="7" y="4" width="10" height="12" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`);
     case "bolt": return svg(`<path d="M13 2L6 14h6l-1 8 7-12h-6l1-8z" fill="${pink}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>`);
     case "jail": return svg(`<rect x="6" y="5" width="12" height="14" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="2"/><path d="M10 5v14M14 5v14" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/>`);
     case "police": return svg(`<path d="M12 3l8 4v6c0 5-4 8-8 8s-8-3-8-8V7l8-4z" fill="${pink}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/>`);
     case "palm": return svg(`<path d="M12 21v-8" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/><path d="M12 13c-3 0-6-2-7-4 3 1 6 0 7-2 1 2 4 3 7 2-1 2-4 4-7 4z" fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>`);
     case "wave": return svg(`<path d="M3 14c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/>`);
-    case "sun": return svg(`<circle cx="12" cy="12" r="4" fill="${pink}" stroke="${stroke}" stroke-width="1.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="${stroke}" stroke-width="1.5" stroke-linecap="round"/>`);
-    case "music": return svg(`<path d="M10 18a2 2 0 1 1-1-1.73V7l10-2v8.5" fill="${fill}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/><circle cx="18" cy="17" r="2" fill="${pink}" stroke="${stroke}" stroke-width="1.5"/>`);
+    case "sun": return svg(`<circle cx="12" cy="12" r="4" fill="${pink}" stroke="${stroke}" stroke-width="1.5"/>`);
+    case "music": return svg(`<path d="M10 18a2 2 0 1 1-1-1.73V7l10-2v8.5" fill="${fill}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/>`);
     case "tower": return svg(`<path d="M8 21V8l4-4 4 4v13" fill="${fill}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/>`);
-    case "game": return svg(`<rect x="6" y="9" width="12" height="8" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="2"/><path d="M9 13h2M10 12v2" stroke="${stroke}" stroke-width="2" stroke-linecap="round"/>`);
+    case "game": return svg(`<rect x="6" y="9" width="12" height="8" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`);
     case "chip": return svg(`<rect x="7" y="7" width="10" height="10" rx="2" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`);
     case "car": return svg(`<path d="M6 15l1-5h10l1 5" fill="${fill}" stroke="${stroke}" stroke-width="2" stroke-linejoin="round"/>`);
     case "park": return svg(`<path d="M8 21V9c0-3 2-5 4-5s4 2 4 5v12" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`);
@@ -176,19 +185,6 @@ function iconSvg(name){
     case "heart": return svg(`<path d="M12 20s-7-4.6-7-9.5A3.8 3.8 0 0 1 8.8 7c1.3 0 2.5.6 3.2 1.6A4 4 0 0 1 15.2 7 3.8 3.8 0 0 1 19 10.5C19 15.4 12 20 12 20z" fill="${pink}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round"/>`);
     default: return svg(`<circle cx="12" cy="12" r="6" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`);
   }
-}
-
-function badgeFor(c, i){
-  if (c.type==="start") return "GO";
-  if (c.type==="jail") return "JAIL";
-  if (c.type==="gotojail") return "🚓";
-  if (c.type==="parking") return "FREE";
-  if (c.type==="chance") return "?";
-  if (c.type==="tax") return "TAX";
-  if (c.type==="station") return "TRANSIT";
-  if (c.type==="utility") return "UTIL";
-  if (c.type==="prop") return ownedByMe.has(i) ? "OWNED" : "BUY";
-  return "";
 }
 
 function renderBoard(){
@@ -211,6 +207,17 @@ function renderBoard(){
     }
     if (!bar) bar = ["#2dd4bf","#a78bfa"];
 
+    const badge =
+      c.type==="start" ? "GO" :
+      c.type==="jail" ? "JAIL" :
+      c.type==="gotojail" ? "🚓" :
+      c.type==="parking" ? "FREE" :
+      c.type==="chance" ? "?" :
+      c.type==="tax" ? "TAX" :
+      c.type==="station" ? "TRANSIT" :
+      c.type==="utility" ? "UTIL" :
+      c.type==="prop" ? (ownedByMe.has(i) ? "OWNED" : "BUY") : "";
+
     const priceText =
       (c.type==="prop" || c.type==="station" || c.type==="utility")
         ? (ownedByMe.has(i) ? "" : `⭐ ${c.price}`)
@@ -221,30 +228,38 @@ function renderBoard(){
       <div class="mid">
         <div class="emoji">${escapeHtml(c.emoji || "✨")}</div>
         ${iconSvg(c.icon || c.type)}
-        <span class="badge">${escapeHtml(badgeFor(c,i))}</span>
+        <span class="badge">${escapeHtml(badge)}</span>
       </div>
       <div class="label">${escapeHtml(c.name)}</div>
       <div class="sub"><span></span><span>${escapeHtml(priceText)}</span></div>
     `;
-
     el.addEventListener("click", () => openCellPanel(i));
     board.appendChild(el);
   }
 }
 
-/* Фишка: двигаем по координатам в % -> в пиксели относительно board */
+/* token */
 function updateToken(){
   const coords = getPerimeterCoords();
   const c = coords[position];
   const bw = board.clientWidth;
   const bh = board.clientHeight;
 
-  const x = (c.x / 100) * bw + (bw * 0.09); // небольшой сдвиг внутрь клетки
+  const x = (c.x / 100) * bw + (bw * 0.09);
   const y = (c.y / 100) * bh + (bh * 0.09);
 
   token.style.left = x + "px";
   token.style.top  = y + "px";
 }
+
+/* chat input */
+chatForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const txt = chatInput.value.trim();
+  if (!txt) return;
+  addLog("YOU", txt);
+  chatInput.value = "";
+});
 
 function openBottom(html){
   bottomPanel.style.display = "block";
@@ -273,9 +288,10 @@ function openCellPanel(i){
     document.getElementById("buyBtn").onclick = () => {
       if (owned || stars < c.price) return;
       stars -= c.price;
-      ownedByMe.add(i);
       meStarsEl.textContent = String(stars);
+      ownedByMe.add(i);
       renderBoard();
+      renderPlayers();
       addLog("SYSTEM", `Ты купил ${c.name} за ⭐ ${c.price}`);
       closeBottom();
     };
@@ -296,12 +312,14 @@ function applyCell(){
   if (c.type==="start"){
     stars += 50;
     meStarsEl.textContent = String(stars);
+    renderPlayers();
     addLog("SYSTEM", `START бонус: +⭐ 50`);
     return;
   }
   if (c.type==="tax"){
     stars = Math.max(0, stars - c.value);
     meStarsEl.textContent = String(stars);
+    renderPlayers();
     addLog("SYSTEM", `${c.name}: -⭐ ${c.value}`);
     return;
   }
@@ -315,6 +333,7 @@ function applyCell(){
     const e = events[Math.floor(Math.random()*events.length)];
     stars = Math.max(0, stars + e.d);
     meStarsEl.textContent = String(stars);
+    renderPlayers();
     addLog("CHANCE", `${e.t}: ${e.d>0?"+":"-"}⭐ ${Math.abs(e.d)}`);
     return;
   }
@@ -329,7 +348,7 @@ function applyCell(){
   if (c.type==="prop" || c.type==="station" || c.type==="utility") openCellPanel(position);
 }
 
-/* ROLL */
+/* roll */
 rollBtn.onclick = () => {
   if (rolling) return;
   rolling = true;
@@ -347,16 +366,14 @@ rollBtn.onclick = () => {
     rollBtn.classList.remove("rolling");
     rollBtn.disabled = false;
     rolling = false;
-
-    chatPanel.classList.add("open");
   }, 650);
 };
 
-/* INIT */
+/* init */
 meStarsEl.textContent = String(stars);
+renderPlayers();
 renderBoard();
 updateToken();
-addLog("SYSTEM", "Если не обновилось — Ctrl+Shift+R / инкогнито. Иконки есть (эмодзи + SVG).");
+addLog("SYSTEM", "Теперь чат по центру, а игроки слева как в примере.");
 
-/* Важно: при ресайзе (Telegram/мобила) пересчитываем фишку */
 window.addEventListener("resize", () => updateToken());
