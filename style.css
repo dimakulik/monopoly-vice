@@ -1,10 +1,11 @@
 :root{
   --appH: 100vh;
 
-  /* если будет слишком широко — будет уменьшаться scale() */
+  /* “десктопный холст” как monopoly-one */
   --canvasW: 980px;
   --canvasH: 760px;
 
+  /* левая колонка игроков */
   --playersW: 150px;
   --gap: 12px;
 
@@ -23,36 +24,48 @@ body{
   color:var(--text);
 }
 
+/* экран */
 .screen{
   height: var(--appH);
   width: 100vw;
-  display:flex;
-  align-items:center;
-  justify-content:flex-start;   /* ВАЖНО: не center */
-  overflow:hidden;              /* чтобы не появлялись скроллы */
+  overflow:hidden;
+  position:relative;
+
   padding:
     calc(10px + env(safe-area-inset-top))
-    0
+    10px
     calc(10px + env(safe-area-inset-bottom))
-    0;
+    10px;
 }
 
-/* холст прижимаем к левому краю */
-.canvas{
-  margin-left: 10px;
+/* реальная видимая область */
+.viewport{
+  position:absolute;
+  left:10px;
+  right:10px;
+  top: calc(10px + env(safe-area-inset-top));
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  overflow:hidden;
 }
 
-/* ВАЖНО: canvas не должен быть display:none или position:fixed от старого css */
+/* холст */
 .canvas{
+  position:absolute;
+  left:0;
+  top:0;
+
   width: var(--canvasW);
   height: var(--canvasH);
+
   display:grid;
   grid-template-columns: var(--playersW) 1fr;
   gap: var(--gap);
-  transform-origin:center center;
+
+  transform-origin: 0 0;
   will-change: transform;
 }
 
+/* PLAYERS */
 .players{
   display:flex;
   flex-direction:column;
@@ -76,11 +89,13 @@ body{
   width:42px;height:42px;border-radius:999px;
   background: linear-gradient(135deg,#5ffcff,#9f5bff);
   border:2px solid #00000033;
+  flex:0 0 auto;
 }
 .meta{min-width:0;}
 .name{font-weight:900;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .money{margin-top:3px;font-size:12px;font-weight:900;color:#aaf6d5;}
 
+/* GAME AREA */
 .gameArea{
   position:relative;
   width:100%;
@@ -102,7 +117,7 @@ body{
 
 .cells{position:absolute;inset:0;}
 
-/* большой серый центр (как на monopoly-one) */
+/* center void */
 .centerVoid{
   position:absolute;
   left:16%;top:16%;
@@ -123,13 +138,14 @@ body{
 .cell.corner{width:92px;height:92px;}
 .cell.edge{width:62px;height:92px;}
 .cell.edge.h{width:92px;height:62px;}
+
 .cell .label{
   position:absolute;bottom:3px;left:3px;right:3px;
   font-size:10px;font-weight:900;color:#111;text-align:center;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 
-/* tokens */
+/* TOKENS */
 .tokens{position:absolute;inset:0;pointer-events:none;}
 .token{
   position:absolute;width:18px;height:18px;border-radius:50%;
@@ -172,6 +188,10 @@ body{
   pointer-events:auto;
 }
 .chatLog{flex:1;padding:10px;overflow:auto;font-size:12px;line-height:1.35;}
+.msg{margin:0 0 6px 0;color:#d7d2ff;}
+.msg.sys{color:#ffcf7a;}
+.msg.you{color:#9af1ff;}
+
 .chatInput{
   border-top:1px solid var(--stroke);
   display:flex;gap:8px;padding:8px;align-items:center;
@@ -186,6 +206,7 @@ body{
   height:38px;border:none;border-radius:10px;
   background:#2bd3a9;color:#062017;font-weight:900;cursor:pointer;
 }
+.btn:active{ transform: translateY(1px); }
 .btn.mini{width:44px;height:36px;}
 
 .diceOverlay{
@@ -202,7 +223,7 @@ body{
 }
 .hidden{display:none;}
 
-/* DEBUG полоска */
+/* DEBUG */
 .debug{
   position:absolute;
   left:10px;
@@ -215,20 +236,7 @@ body{
   pointer-events:none;
 }
 
-.nojs{
-  position:fixed;
-  left:10px; right:10px; top:10px;
-  padding:10px 12px;
-  background:#ff2d2d;
-  color:#fff;
-  border-radius:12px;
-  font-weight:900;
-}
-
+/* phones: чуть уже колонка игроков */
 @media (max-width: 520px){
-  /* на телефоне уменьшаем ширину колонки игроков как на monopoly-one */
-  :root{
-    --playersW: 118px;
-    --gap: 10px;
-  }
+  :root{ --playersW: 118px; --gap: 10px; }
 }
