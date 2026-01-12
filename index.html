@@ -3,31 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
-  <title>Monopoly TG</title>
+  <title>monopoly_tg</title>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link rel="stylesheet" href="./style.css" />
 </head>
+
 <body>
-  <!-- экран (центрирует холст) -->
   <div class="screen">
-    <!-- “десктопный холст” как на monopoly-one (его будем scale-ить целиком) -->
     <div id="canvas" class="canvas">
-      <!-- слева игроки -->
       <aside id="players" class="players"></aside>
 
-      <!-- справа игровая зона -->
       <main class="gameArea">
-        <!-- поле -->
         <div id="board" class="board">
           <div id="cells" class="cells"></div>
           <div id="tokens" class="tokens"></div>
           <div class="centerVoid"></div>
         </div>
 
-        <!-- HUD поверх центра (как на monopoly-one) -->
         <div class="hud">
-          <div id="turnBanner" class="turnBanner hidden">
+          <div id="turnBanner" class="turnBanner">
             <div class="turnTitle">Ваш ход!</div>
             <div class="turnSub">Вперёд, к новым победам!</div>
             <button id="rollBtn" class="btn">Бросить кубики</button>
@@ -45,10 +40,16 @@
             <div class="die">⚄</div>
             <div class="die">⚁</div>
           </div>
+
+          <!-- DEBUG STRIP -->
+          <div id="debug" class="debug">DEBUG: loading…</div>
         </div>
       </main>
     </div>
   </div>
+
+  <!-- Если JS не загрузился, увидишь красный баннер -->
+  <div id="nojs" class="nojs">JS НЕ ЗАГРУЗИЛСЯ: app.js не подключился</div>
 
   <script src="./app.js"></script>
 </body>
