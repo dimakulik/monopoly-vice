@@ -1,9 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
 
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: Orbitron, sans-serif; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Orbitron, sans-serif;
+}
 
 body {
-  background: radial-gradient(circle at top, #200040, #05000a);
+  background: radial-gradient(circle at top, #1b0033, #05000a);
   color: white;
   height: 100vh;
 }
@@ -26,7 +31,10 @@ body {
   box-shadow: 0 0 15px #00ffff;
 }
 
-.money { color: gold; font-size: 14px; }
+.money {
+  color: gold;
+  font-size: 14px;
+}
 
 #roll {
   width: 60px;
@@ -39,7 +47,7 @@ body {
   box-shadow: 0 0 15px #00ffff;
 }
 
-/* Board */
+/* GAME */
 .game {
   position: relative;
   height: calc(100vh - 80px);
@@ -48,37 +56,59 @@ body {
   align-items: center;
 }
 
+/* BOARD */
 .board {
+  position: relative;
   width: 90vmin;
   height: 90vmin;
-  display: grid;
-  grid-template-columns: repeat(11, 1fr);
-  grid-template-rows: repeat(11, 1fr);
+  background: #0a0015;
   border: 3px solid #00ffff;
 }
 
+/* CELLS */
 .cell {
+  position: absolute;
   border: 1px solid #ffffff22;
   font-size: 9px;
-  padding: 2px;
   text-align: center;
+  padding: 4px;
 }
 
-.property { background: #120022; }
-.special { background: #001a1a; color: #00ffff; }
+.corner {
+  width: 18%;
+  height: 18%;
+  font-size: 10px;
+  background: #001a1a;
+  color: #00ffff;
+}
 
-/* Token */
+.edge {
+  background: #120022;
+}
+
+.top, .bottom {
+  width: 8%;
+  height: 18%;
+}
+
+.left, .right {
+  width: 18%;
+  height: 8%;
+}
+
+/* TOKEN */
 .token {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: gold;
   position: absolute;
   box-shadow: 0 0 10px gold;
   transition: 0.4s;
+  z-index: 10;
 }
 
-/* Panel */
+/* PANEL */
 .panel {
   position: absolute;
   bottom: 10px;
