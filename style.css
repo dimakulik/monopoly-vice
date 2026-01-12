@@ -1,11 +1,9 @@
 :root{
   --appH: 100vh;
 
-  /* “десктопный холст” как monopoly-one */
   --canvasW: 980px;
   --canvasH: 760px;
 
-  /* левая колонка игроков */
   --playersW: 150px;
   --gap: 12px;
 
@@ -24,16 +22,14 @@ body{
   color:var(--text);
 }
 
-/* экран */
 .screen{
   height: var(--appH);
   width: 100vw;
   overflow:hidden;
   position:relative;
-  padding:0; /* важно: без двойных отступов */
+  padding:0;
 }
 
-/* видимая область с safe-area */
 .viewport{
   position:absolute;
   left: 10px;
@@ -43,19 +39,15 @@ body{
   overflow:hidden;
 }
 
-/* холст */
 .canvas{
   position:absolute;
   left:0;
   top:0;
-
   width: var(--canvasW);
   height: var(--canvasH);
-
   display:grid;
   grid-template-columns: var(--playersW) 1fr;
   gap: var(--gap);
-
   transform-origin: 0 0;
   will-change: transform;
 }
@@ -110,8 +102,16 @@ body{
   overflow:hidden;
 }
 
-.cells{position:absolute;inset:0; z-index:1;}
+/* ВАЖНО: чтобы при scale не были "швы" — отключаем anti-alias на границах */
+.cells{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
 .tokens{position:absolute;inset:0; pointer-events:none; z-index:2;}
+
 .centerVoid{
   position:absolute;
   left:16%;top:16%;
@@ -121,15 +121,22 @@ body{
   z-index:0;
 }
 
-/* CELLS */
+/* CELLS — фикс швов: делаем рамки через outline и чуть перекрываем соседей */
 .cell{
   position:absolute;
-  border:1px solid #00000055;
   background:#fff;
   display:grid;
   place-items:center;
   overflow:hidden;
+
+  /* вместо border */
+  outline: 1px solid #00000055;
+  outline-offset: -1px;
+
+  /* микроперекрытие чтобы не было зазоров */
+  margin: 0;
 }
+
 .cell.corner{width:92px;height:92px;}
 .cell.edge{width:62px;height:92px;}
 .cell.edge.h{width:92px;height:62px;}
@@ -150,8 +157,21 @@ body{
 .token.you{background:#5ffcff;}
 .token.other{background:#ff4b6e;}
 
-/* HUD */
-.hud{position:absolute;inset:0;pointer-events:none;}
+/* HUD
+   КЛЮЧЕВО: hud не должен блокировать клики
+   Поэтому pointer-events: none на контейнере,
+   а на интерактивных блоках делаем pointer-events: auto
+*/
+.hud{
+  position:absolute;
+  inset:0;
+  pointer-events:none; /* чтобы не перекрывал кнопку */
+}
+
+/* интерактивные блоки */
+.turnBanner, .chat, .btn, .chatInput, .chatInput input{
+  pointer-events:auto;
+}
 
 .turnBanner{
   position:absolute;left:50%;
@@ -159,10 +179,9 @@ body{
   transform: translateX(-50%);
   width: 560px;
   background:#fff;color:#15111f;
-  border:1px solid #00000022;
+  outline: 1px solid #00000022;
   border-radius:10px;
   padding:10px 12px;
-  pointer-events:auto;
 }
 .turnTitle{font-weight:900;font-size:14px;}
 .turnSub{font-size:12px;opacity:.8;margin-top:2px;}
@@ -174,12 +193,11 @@ body{
   width: 560px;
   height: 380px;
   background: var(--panel);
-  border:1px solid var(--stroke);
+  outline: 1px solid var(--stroke);
   border-radius:10px;
   overflow:hidden;
   display:flex;
   flex-direction:column;
-  pointer-events:auto;
 }
 .chatLog{flex:1;padding:10px;overflow:auto;font-size:12px;line-height:1.35;}
 .msg{margin:0 0 6px 0;color:#d7d2ff;}
@@ -206,11 +224,12 @@ body{
 .diceOverlay{
   position:absolute;left:50%;top:50%;
   transform: translate(-50%,-45%);
-  display:flex;gap:14px;pointer-events:none;
+  display:flex;gap:14px;
+  pointer-events:none;
 }
 .die{
   width:76px;height:76px;border-radius:16px;
-  background:#fff;border:1px solid #00000022;
+  background:#fff;outline:1px solid #00000022;
   display:grid;place-items:center;
   font-size:44px;
   box-shadow:0 24px 44px #00000066;
@@ -230,7 +249,6 @@ body{
   pointer-events:none;
 }
 
-/* phones */
 @media (max-width: 520px){
   :root{ --playersW: 118px; --gap: 10px; }
 }
