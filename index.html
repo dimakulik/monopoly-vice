@@ -18,36 +18,46 @@
   </div>
 
   <div class="actions">
-    <button class="chatToggle" id="chatToggle" title="Chat">💬</button>
     <button class="diceBtn" id="rollBtn" title="Roll">🎲</button>
   </div>
 </div>
 
-<div class="stage">
-  <div class="board" id="board">
-    <div class="token" id="token"></div>
+<div class="layout">
+  <!-- LEFT PLAYERS -->
+  <aside class="playersPanel">
+    <div class="playersTitle">Players</div>
+    <div class="playersList" id="playersList"></div>
+  </aside>
 
-    <div class="centerCard">
-      <div class="brand">MONOPOLY<br><span>VICE</span></div>
-      <div class="sub">⭐ вместо денег · Neon rules</div>
+  <!-- BOARD -->
+  <div class="stage">
+    <div class="board" id="board">
+      <div class="token" id="token"></div>
+
+      <!-- CENTER CHAT OVERLAY (как на 2-м скрине) -->
+      <div class="centerOverlay">
+        <div class="centerChat">
+          <div class="centerHeader">
+            <div class="centerBrand">
+              <div class="brandTop">MONOPOLY</div>
+              <div class="brandBottom">VICE</div>
+            </div>
+            <div class="centerHint">лог игры + чат</div>
+          </div>
+
+          <div class="centerBody" id="chatBody"></div>
+
+          <form class="centerInput" id="chatForm">
+            <input id="chatInput" placeholder="Введите сообщение…" autocomplete="off" />
+            <button type="submit">Send</button>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<aside class="chatPanel" id="chatPanel">
-  <div class="chatHeader">
-    <div class="chatTitle">Chat / Log</div>
-    <button class="chatClose" id="chatClose">✕</button>
-  </div>
-
-  <div class="chatBody" id="chatBody"></div>
-
-  <form class="chatForm" id="chatForm">
-    <input id="chatInput" placeholder="Напиши сообщение…" autocomplete="off" />
-    <button type="submit" class="sendBtn">Send</button>
-  </form>
-</aside>
-
+<!-- bottom action panel -->
 <div class="bottomPanel" id="bottomPanel"></div>
 
 <script src="app.js"></script>
