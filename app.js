@@ -13,7 +13,7 @@ function setAppHeight(){
 }
 
 function fitCanvas(){
-  const canvas = document.getElementById("canvas");
+  const canvasWrap = document.getElementById("canvas");
   const viewport = document.getElementById("viewport");
   const root = document.documentElement;
 
@@ -30,7 +30,7 @@ function fitCanvas(){
   const offsetX = (availW - W*s) / 2;
   const offsetY = (availH - H*s) / 2;
 
-  canvas.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${s})`;
+  canvasWrap.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${s})`;
 
   const dbg = document.getElementById("debug");
   if(dbg) dbg.textContent = `scale=${s.toFixed(3)} viewport=${availW.toFixed(0)}x${availH.toFixed(0)}`;
@@ -39,15 +39,17 @@ function fitCanvas(){
 function onResize(){
   setAppHeight();
   fitCanvas();
-  requestAnimationFrame(placeTokens);
+  setupHiDPICanvas();
+  draw();
 }
 
 window.addEventListener("resize", onResize);
 window.addEventListener("orientationchange", onResize);
 
-/***********************
- * DATA
- ***********************/
+/* =======================
+   DATA
+======================= */
+
 const players = [
   { name:"Artemlasvegas", stars:22000, active:false },
   { name:"Soloha",        stars:22850, active:true  },
@@ -56,15 +58,42 @@ const players = [
   { name:"Александр",     stars:25000, active:false },
 ];
 
-const cells40 = Array.from({length:40}).map((_,i)=>({ id:i, name:`Поле ${i}` }));
-cells40[0].name="START";
-cells40[10].name="IN JAIL";
-cells40[20].name="FREE";
-cells40[30].name="GO TO";
+/**
+ * КЛЕТКИ (кастомизация будущими скинами):
+ * - skinId: какой скин применён
+ * - type: тип клетки (start, property, chance, tax, jail, etc.)
+ * - label: текст
+ * - price: цена покупки (⭐) (если property)
+ */
+const cells40 = Array.from({length:40}).map((_,i)=>({
+  id:i,
+  type:"property",
+  label:`Поле ${i}`,
+  price: 0,
+  skinId: "default",
+}));
 
-/***********************
- * HELPERS
- ***********************/
+cells40[0]  = { id:0,  type:"start", label:"START", price:0, skinId:"start" };
+cells40[10] = { id:10, type:"jail",  label:"IN JAIL", price:0, skinId:"jail" };
+cells40[20] = { id:20, type:"free",  label:"FREE", price:0, skinId:"free" };
+cells40[30] = { id:30, type:"goto",  label:"GO TO", price:0, skinId:"goto" };
+
+/**
+ * СКИНЫ (будущее: магазин скинов).
+ * Потом ты просто меняешь cell.skinId (например на "gold_start") и redraw.
+ */
+const skins = {
+  default: { fill:"#ffffff", accent:"#111111", icon:"", iconColor:"#111111" },
+  start:   { fill:"#ffffff", accent:"#0f7cff", icon:"▶", iconColor:"#0f7cff" },
+  jail:    { fill:"#ffffff", accent:"#ff3b5c", icon:"⛓", iconColor:"#ff3b5c" },
+  free:    { fill:"#ffffff", accent:"#22c55e", icon:"★", iconColor:"#22c55e" },
+  goto:    { fill:"#ffffff", accent:"#f59e0b", icon:"↪", iconColor:"#f59e0b" },
+};
+
+/* =======================
+   HELPERS
+======================= */
+
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
 }
@@ -73,9 +102,10 @@ function formatNum(n){
 }
 const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
 
-/***********************
- * PLAYERS
- ***********************/
+/* =======================
+   PLAYERS UI
+======================= */
+
 function renderPlayers(){
   const wrap = document.getElementById("players");
   wrap.innerHTML = "";
@@ -93,119 +123,198 @@ function renderPlayers(){
   });
 }
 
-/***********************
- * CELLS
- ***********************/
-function renderCells(){
-  const wrap = document.getElementById("cells");
-  wrap.innerHTML = "";
+/* =======================
+   CANVAS: board + tokens
+======================= */
 
-  const boardSize = 760;
-  const corner = 92;
-  const edgeW = 62;
-  const edgeH = 92;
+const BOARD_SIZE = 760;
+const corner = 92;
+const edgeW = 62;
+const edgeH = 92;
 
-  const OVER = 2; // перекрытие против швов
+const canvasEl = document.getElementById("boardCanvas");
+const ctx = canvasEl.getContext("2d");
 
-  function addCell(i,x,y,w,h){
-    const c = document.createElement("div");
-    c.className = "cell";
-    c.dataset.index = String(i);
-    c.style.left = `${x}px`;
-    c.style.top = `${y}px`;
-    c.style.width = `${w + OVER}px`;
-    c.style.height = `${h + OVER}px`;
-    c.innerHTML = `<div class="label">${escapeHtml(cells40[i].name)}</div>`;
-    wrap.appendChild(c);
-  }
+let DPR = 1;
 
-  addCell(0, boardSize-corner, boardSize-corner, corner, corner);
-  addCell(10, 0, boardSize-corner, corner, corner);
-  addCell(20, 0, 0, corner, corner);
-  addCell(30, boardSize-corner, 0, corner, corner);
+// прямоугольники всех клеток (для рисования и попадания фишек)
+let cellRects = []; // index -> {x,y,w,h, rot}
 
-  for(let k=1;k<=9;k++) addCell(k, boardSize-corner-edgeW*k, boardSize-edgeH, edgeW, edgeH);
-  for(let k=1;k<=9;k++) addCell(10+k, 0, boardSize-corner-edgeW*k, edgeH, edgeW);
-  for(let k=1;k<=9;k++) addCell(20+k, corner+edgeW*(k-1), 0, edgeW, edgeH);
-  for(let k=1;k<=9;k++) addCell(30+k, boardSize-edgeH, corner+edgeW*(k-1), edgeH, edgeW);
+function setupHiDPICanvas(){
+  DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+  canvasEl.width  = Math.round(BOARD_SIZE * DPR);
+  canvasEl.height = Math.round(BOARD_SIZE * DPR);
+  canvasEl.style.width = `${BOARD_SIZE}px`;
+  canvasEl.style.height = `${BOARD_SIZE}px`;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.imageSmoothingEnabled = true;
 }
 
-/***********************
- * TOKENS
- ***********************/
-const tokenState = { me:{index:0}, other:{index:5} };
-const tokenAnim = {
-  me: { x:0, y:0 },
-  other: { x:0, y:0 }
+function computeCellRects(){
+  const rects = new Array(40);
+
+  // corners
+  rects[0]  = {x:BOARD_SIZE-corner, y:BOARD_SIZE-corner, w:corner, h:corner};
+  rects[10] = {x:0, y:BOARD_SIZE-corner, w:corner, h:corner};
+  rects[20] = {x:0, y:0, w:corner, h:corner};
+  rects[30] = {x:BOARD_SIZE-corner, y:0, w:corner, h:corner};
+
+  // bottom 1..9
+  for(let k=1;k<=9;k++){
+    rects[k] = { x: BOARD_SIZE-corner-edgeW*k, y: BOARD_SIZE-edgeH, w: edgeW, h: edgeH };
+  }
+  // left 11..19
+  for(let k=1;k<=9;k++){
+    rects[10+k] = { x: 0, y: BOARD_SIZE-corner-edgeW*k, w: edgeH, h: edgeW };
+  }
+  // top 21..29
+  for(let k=1;k<=9;k++){
+    rects[20+k] = { x: corner+edgeW*(k-1), y: 0, w: edgeW, h: edgeH };
+  }
+  // right 31..39
+  for(let k=1;k<=9;k++){
+    rects[30+k] = { x: BOARD_SIZE-edgeH, y: corner+edgeW*(k-1), w: edgeH, h: edgeW };
+  }
+
+  cellRects = rects;
+}
+
+function draw(){
+  if(!cellRects.length) computeCellRects();
+
+  // background
+  ctx.clearRect(0,0,BOARD_SIZE,BOARD_SIZE);
+  ctx.fillStyle = "#0d0914";
+  ctx.fillRect(0,0,BOARD_SIZE,BOARD_SIZE);
+
+  // draw cells (единый canvas => НЕТ ШВОВ)
+  for(let i=0;i<40;i++){
+    drawCell(i, cellRects[i]);
+  }
+
+  // center area
+  ctx.fillStyle = "#2b2b2b";
+  const cx = BOARD_SIZE*0.16, cy = BOARD_SIZE*0.16, cw = BOARD_SIZE*0.68, ch = BOARD_SIZE*0.68;
+  ctx.fillRect(cx, cy, cw, ch);
+  ctx.strokeStyle = "rgba(0,0,0,0.35)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(cx, cy, cw, ch);
+
+  // tokens
+  drawTokens();
+}
+
+function drawCell(i, r){
+  const cell = cells40[i];
+  const skin = skins[cell.skinId] || skins.default;
+
+  // fill
+  ctx.fillStyle = skin.fill || "#fff";
+  ctx.fillRect(r.x, r.y, r.w, r.h);
+
+  // border (рисуем линию внутри, чтобы не было “шва” по краю соседей)
+  ctx.strokeStyle = "rgba(17,17,17,1)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+
+  // accent strip (типа цветной полоски как у монополии)
+  ctx.fillStyle = skin.accent || "#111";
+  // полоска сверху для вертикальных, слева для горизонтальных — упрощённо
+  const strip = 10;
+  if(r.h >= r.w){ // высокая (боковые)
+    ctx.fillRect(r.x, r.y, r.w, strip);
+  }else{
+    ctx.fillRect(r.x, r.y, strip, r.h);
+  }
+
+  // icon
+  if(skin.icon){
+    ctx.fillStyle = skin.iconColor || "#111";
+    ctx.font = "bold 18px -apple-system, system-ui, Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(skin.icon, r.x + r.w/2, r.y + r.h/2 - 8);
+  }
+
+  // label
+  ctx.fillStyle = "#111";
+  ctx.font = "bold 10px -apple-system, system-ui, Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+
+  const text = cell.label || "";
+  ctx.fillText(text, r.x + r.w/2, r.y + r.h - 6);
+
+  // price (если property и цена есть)
+  if(cell.type === "property" && cell.price > 0){
+    ctx.fillStyle = "#111";
+    ctx.font = "bold 9px -apple-system, system-ui, Arial";
+    ctx.fillText(`⭐ ${formatNum(cell.price)}`, r.x + r.w/2, r.y + 14);
+  }
+}
+
+/* =======================
+   TOKENS (плавная анимация)
+======================= */
+
+const tokenState = {
+  me:    { index:0 },
+  other: { index:5 },
 };
 
-function renderTokens(){
-  const wrap = document.getElementById("tokens");
-  wrap.innerHTML = `
-    <div id="t_me" class="token you"></div>
-    <div id="t_other" class="token other"></div>
-  `;
+const tokenAnim = {
+  me:    { x:0, y:0 },
+  other: { x:0, y:0 },
+};
+
+function cellCenter(index){
+  const r = cellRects[index];
+  return { x: r.x + r.w/2, y: r.y + r.h/2 };
 }
 
-function getCellCenter(i){
-  const cell = document.querySelector(`.cell[data-index="${i}"]`);
-  const board = document.getElementById("board");
-  if(!cell || !board) return {x:0,y:0};
-
-  const cr = cell.getBoundingClientRect();
-  const br = board.getBoundingClientRect();
-
-  return {
-    x: (cr.left - br.left + cr.width/2) / currentScale,
-    y: (cr.top  - br.top  + cr.height/2) / currentScale
-  };
+function initTokenPositions(){
+  const a = cellCenter(tokenState.me.index);
+  const b = cellCenter(tokenState.other.index);
+  tokenAnim.me.x = a.x; tokenAnim.me.y = a.y;
+  tokenAnim.other.x = b.x + 14; tokenAnim.other.y = b.y + 14;
 }
 
-function applyTokenPos(){
-  const me = document.getElementById("t_me");
-  const other = document.getElementById("t_other");
-  if(me){
-    me.style.left = `${tokenAnim.me.x}px`;
-    me.style.top  = `${tokenAnim.me.y}px`;
-  }
-  if(other){
-    other.style.left = `${tokenAnim.other.x}px`;
-    other.style.top  = `${tokenAnim.other.y}px`;
-  }
+function drawTokens(){
+  // me
+  drawTokenCircle(tokenAnim.me.x, tokenAnim.me.y, 9, "#5ffcff");
+  // other
+  drawTokenCircle(tokenAnim.other.x, tokenAnim.other.y, 9, "#ff4b6e");
 }
 
-function placeTokens(){
-  // ставим мгновенно по текущим индексам (например после resize)
-  const p1 = getCellCenter(tokenState.me.index);
-  const p2 = getCellCenter(tokenState.other.index);
-  tokenAnim.me.x = p1.x; tokenAnim.me.y = p1.y;
-  tokenAnim.other.x = p2.x + 14; tokenAnim.other.y = p2.y + 14;
-  applyTokenPos();
+function drawTokenCircle(x,y,r,color){
+  ctx.beginPath();
+  ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(0,0,0,0.35)";
+  ctx.stroke();
 }
 
-/***********************
- * Smooth animation helpers
- ***********************/
 function easeInOut(t){
   return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2;
 }
 
-function animateTo(playerKey, target, duration=180){
+function animateTokenTo(playerKey, target, duration=160){
   return new Promise((resolve)=>{
-    const startX = tokenAnim[playerKey].x;
-    const startY = tokenAnim[playerKey].y;
-    const dx = target.x - startX;
-    const dy = target.y - startY;
-
+    const sx = tokenAnim[playerKey].x;
+    const sy = tokenAnim[playerKey].y;
+    const dx = target.x - sx;
+    const dy = target.y - sy;
     const t0 = performance.now();
+
     function frame(now){
       const t = Math.min((now - t0) / duration, 1);
       const k = easeInOut(t);
-
-      tokenAnim[playerKey].x = startX + dx*k;
-      tokenAnim[playerKey].y = startY + dy*k;
-      applyTokenPos();
-
+      tokenAnim[playerKey].x = sx + dx*k;
+      tokenAnim[playerKey].y = sy + dy*k;
+      draw();
       if(t < 1) requestAnimationFrame(frame);
       else resolve();
     }
@@ -213,27 +322,20 @@ function animateTo(playerKey, target, duration=180){
   });
 }
 
-/***********************
- * STEP MOVE with smooth transitions
- ***********************/
 async function moveTokenSmoothSteps(playerKey, steps){
   for(let s=0; s<steps; s++){
     tokenState[playerKey].index = (tokenState[playerKey].index + 1) % 40;
-
-    const center = getCellCenter(tokenState[playerKey].index);
-    const target = (playerKey === "other")
-      ? { x: center.x + 14, y: center.y + 14 }
-      : { x: center.x, y: center.y };
-
-    // плавно едем к следующей клетке
-    await animateTo(playerKey, target, 160);
+    const c = cellCenter(tokenState[playerKey].index);
+    const target = (playerKey === "other") ? {x:c.x+14,y:c.y+14} : c;
+    await animateTokenTo(playerKey, target, 160);
     await sleep(30);
   }
 }
 
-/***********************
- * CHAT + DICE + ROLL
- ***********************/
+/* =======================
+   CHAT + DICE + ROLL
+======================= */
+
 const chatLog = document.getElementById("chatLog");
 const chatInput = document.getElementById("chatInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -286,14 +388,27 @@ rollBtn.addEventListener("pointerup", async (e)=>{
 });
 rollBtn.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); });
 
-/***********************
- * INIT
- ***********************/
-renderPlayers();
-renderCells();
-renderTokens();
+/* =======================
+   FUTURE: кастомизация скинов
+   Пример (потом будет "купил скин" -> применил):
+   applySkinToCell(0, "default") или applySkinToCell(0, "start")
+======================= */
+function applySkinToCell(cellIndex, skinId){
+  if(!cells40[cellIndex]) return;
+  cells40[cellIndex].skinId = skinId;
+  draw();
+}
 
-addMsg("Фишка теперь должна плавно ехать ✅", "sys");
-addMsg("Зазоры должны стать НЕ заметны (сеткой) ✅", "sys");
+/* =======================
+   INIT
+======================= */
+
+renderPlayers();
+computeCellRects();
+setupHiDPICanvas();
+initTokenPositions();
+
+addMsg("Поле рисуется на Canvas — швов быть не должно ✅", "sys");
+addMsg("Кастомизация: у каждой клетки есть skinId ✅", "sys");
 
 onResize();
