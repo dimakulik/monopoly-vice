@@ -8,62 +8,52 @@
 </head>
 <body>
 
-<div class="app">
-  <!-- LEFT: players -->
-  <aside class="side left">
-    <div class="side-title">Players</div>
-    <div class="players" id="players"></div>
-
-    <div class="side-footer">
-      <button class="btn small ghost" id="addBotPlayers">+ demo players</button>
+<!-- TOP HUD -->
+<div class="topbar">
+  <div class="me">
+    <div class="avatar"></div>
+    <div class="meinfo">
+      <div class="name" id="meName">PLAYER</div>
+      <div class="stars">⭐ <span id="meStars">1450</span></div>
     </div>
-  </aside>
+  </div>
 
-  <!-- CENTER: board -->
-  <main class="center">
-    <div class="topbar">
-      <div class="me">
-        <div class="avatar big" id="meAvatar"></div>
-        <div class="me-info">
-          <div class="me-name" id="meName">PLAYER</div>
-          <div class="me-stars">⭐ <span id="meStars">1500</span></div>
-        </div>
-      </div>
-
-      <div class="controls">
-        <button class="dice-btn" id="rollBtn" title="Roll">🎲</button>
-      </div>
-    </div>
-
-    <div class="board-wrap">
-      <div class="board" id="board">
-        <div class="center-card">
-          <div class="brand">
-            <div class="brand-title">MONOPOLY</div>
-            <div class="brand-sub">VICE EDITION</div>
-          </div>
-          <div class="hint">⭐ вместо денег · neon vibes</div>
-        </div>
-      </div>
-      <div class="token" id="token"></div>
-    </div>
-  </main>
-
-  <!-- RIGHT: chat -->
-  <aside class="side right">
-    <div class="side-title">Chat / Log</div>
-
-    <div class="chat" id="chat"></div>
-
-    <form class="chat-input" id="chatForm">
-      <input id="chatText" placeholder="Напиши сообщение…" autocomplete="off" />
-      <button class="btn primary" type="submit">Send</button>
-    </form>
-  </aside>
+  <div class="actions">
+    <button class="chatToggle" id="chatToggle" title="Chat">💬</button>
+    <button class="diceBtn" id="rollBtn" title="Roll">🎲</button>
+  </div>
 </div>
 
-<!-- bottom action panel -->
-<div class="panel" id="panel"></div>
+<!-- BOARD AREA -->
+<div class="stage">
+  <div class="board" id="board">
+    <!-- token is INSIDE board now (important) -->
+    <div class="token" id="token"></div>
+
+    <div class="centerCard">
+      <div class="brand">MONOPOLY<br><span>VICE</span></div>
+      <div class="sub">⭐ вместо денег · Neon rules</div>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT / LOG PANEL -->
+<aside class="chatPanel" id="chatPanel">
+  <div class="chatHeader">
+    <div class="chatTitle">Chat / Log</div>
+    <button class="chatClose" id="chatClose">✕</button>
+  </div>
+
+  <div class="chatBody" id="chatBody"></div>
+
+  <form class="chatForm" id="chatForm">
+    <input id="chatInput" placeholder="Напиши сообщение…" autocomplete="off" />
+    <button type="submit" class="sendBtn">Send</button>
+  </form>
+</aside>
+
+<!-- BOTTOM ACTION PANEL (когда попал на клетку) -->
+<div class="bottomPanel" id="bottomPanel"></div>
 
 <script src="app.js"></script>
 </body>
