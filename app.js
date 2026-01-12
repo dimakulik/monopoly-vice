@@ -38,14 +38,11 @@ function fitCanvas(){
   if(dbg){
     dbg.textContent = `scale=${s.toFixed(3)} viewport=${availW.toFixed(0)}x${availH.toFixed(0)}`;
   }
-
-  return s;
 }
 
 function onResize(){
   setAppHeight();
   fitCanvas();
-  // после fit обязательно пересчитать фишки
   requestAnimationFrame(placeTokens);
 }
 
@@ -63,7 +60,6 @@ const players = [
   { name:"Александр",     stars:25000, active:false },
 ];
 
-// 40 клеток (замени на свои)
 const cells40 = Array.from({length:40}).map((_,i)=>({ id:i, name:`Поле ${i}` }));
 cells40[0].name="START";
 cells40[10].name="IN JAIL";
@@ -82,7 +78,7 @@ function formatNum(n){
 const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
 
 /***********************
- * RENDER PLAYERS
+ * PLAYERS
  ***********************/
 function renderPlayers(){
   const wrap = document.getElementById("players");
@@ -102,7 +98,7 @@ function renderPlayers(){
 }
 
 /***********************
- * RENDER CELLS
+ * CELLS (перекрытие на 1px чтобы убрать швы)
  ***********************/
 function renderCells(){
   const wrap = document.getElementById("cells");
@@ -113,17 +109,23 @@ function renderCells(){
   const edgeW = 62;
   const edgeH = 92;
 
+  const OVERLAP = 1; // ключ к отсутствию швов
+
   function addCell(i,x,y,w,h,type){
     const c = document.createElement("div");
     c.className = `cell ${type} ${w>h ? "h":""}`.trim();
+
+    // увеличиваем на 1px чтобы клетки перекрывали швы
+    const ww = w + OVERLAP;
+    const hh = h + OVERLAP;
+
     c.style.left = `${x}px`;
     c.style.top = `${y}px`;
-    c.style.width = `${w}px`;
-    c.style.height = `${h}px`;
-    c.dataset.index = String(i);
+    c.style.width = `${ww}px`;
+    c.style.height = `${hh}px`;
 
-    const d = cells40[i];
-    c.innerHTML = `<div class="label">${escapeHtml(d.name)}</div>`;
+    c.dataset.index = String(i);
+    c.innerHTML = `<div class="label">${escapeHtml(cells40[i].name)}</div>`;
     wrap.appendChild(c);
   }
 
@@ -159,7 +161,6 @@ function getCellCenter(i){
   const cr = cell.getBoundingClientRect();
   const br = board.getBoundingClientRect();
 
-  // ВАЖНО: делим на scale, чтобы фишки попадали в координаты board
   return {
     x: (cr.left - br.left + cr.width/2) / currentScale,
     y: (cr.top  - br.top  + cr.height/2) / currentScale
@@ -214,8 +215,8 @@ function showDice(a,b){
 }
 function hideDice(){ diceOverlay.classList.add("hidden"); }
 
-/* ВАЖНО: делаем обработчик клика максимально "железным" */
-rollBtn.addEventListener("click", async (e)=>{
+/* клик железно */
+rollBtn.addEventListener("pointerup", async (e)=>{
   e.preventDefault();
   e.stopPropagation();
 
@@ -229,10 +230,11 @@ rollBtn.addEventListener("click", async (e)=>{
   hideDice();
 
   tokenState.me.index = (tokenState.me.index + d1 + d2) % 40;
-
-  // после хода тоже лучше через rAF
   requestAnimationFrame(placeTokens);
 });
+
+// на случай если pointerup не сработает в старом webview:
+rollBtn.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); });
 
 /***********************
  * INIT
@@ -242,6 +244,6 @@ renderCells();
 renderTokens();
 
 addMsg("Кнопка должна кликаться ✅", "sys");
-addMsg("Если швов нет — клетки стыкуются ✅", "sys");
+addMsg("Швов между клетками быть не должно ✅", "sys");
 
 onResize();
