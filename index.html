@@ -14,11 +14,42 @@
       color:#fff;
       overflow:hidden;
     }
+
+    /* DESKTOP: слева список, справа поле */
     .app{
       height:100%;
       display:grid;
       grid-template-columns: 320px 1fr;
     }
+
+    /* MOBILE: поле на весь экран, игроки поверх слева */
+    @media (max-width: 900px){
+      .app{ grid-template-columns: 1fr; }
+      .left{
+        position:fixed;
+        left:10px;
+        top:90px;
+        width:96px;
+        padding:0;
+        background:transparent;
+        z-index:50;
+        pointer-events:none; /* чтобы не мешало кликам по полю */
+        gap:10px;
+      }
+      .pcard{
+        width:96px;
+        padding:10px 8px;
+        border-radius:10px;
+        pointer-events:none;
+      }
+      .pcard.big{ padding:10px 8px; }
+      .pcard .lvl{ display:none; }
+      .ava{ width:44px; height:44px; margin:0 auto 6px; }
+      .pname{ font-size:12px; margin:0 0 4px; }
+      .pmoney{ font-size:14px; }
+      .swords{ display:none; }
+    }
+
     .left{
       background:#1b2024;
       padding:18px 14px;
@@ -54,9 +85,11 @@
     .ava.green{ outline-color:#33d46a; }
     .ava.blue{ outline-color:#3aa7ff; }
     .ava.purple{ outline-color:#b17cff; }
+
     .pname{ text-align:center; font-weight:800; margin-bottom:6px; }
     .pmoney{ text-align:center; font-size:28px; font-weight:900; letter-spacing:.5px; }
     .pcard:not(.big) .pmoney{ font-size:22px; }
+
     .swords{ margin:18px auto; font-size:44px; opacity:.9; }
 
     .mid{ background:#2a3136; }
@@ -73,8 +106,17 @@
       aspect-ratio:1/1;
       overflow:visible;
     }
+    @media (max-width: 900px){
+      .stage{ padding:0; }
+      .boardWrap{
+        width:min(96vw, 720px);
+        aspect-ratio:1/1;
+      }
+    }
+
     canvas{ width:100%; height:100%; display:block; }
 
+    /* чат как на monopoly-one: снизу внутри центра */
     .chat{
       position:absolute;
       left:50%;
@@ -85,6 +127,10 @@
       background:#2f363b;
       display:flex;
       flex-direction:column;
+      z-index:10;
+    }
+    @media (max-width: 900px){
+      .chat{ width:86%; height:58%; bottom:10px; }
     }
     .chatLog{
       flex:1 1 auto;
@@ -121,14 +167,9 @@
     }
     .icons{ display:flex; gap:12px; align-items:center; color:#cfd6db; font-size:18px; }
     .ico{ opacity:.9; }
-
-    @media (max-width: 900px){
-      .app{ grid-template-columns: 260px 1fr; }
-      .pmoney{ font-size:24px; }
-      .chat{ width:78%; height:58%; }
-    }
   </style>
 </head>
+
 <body>
   <div class="app">
     <aside class="left">
@@ -167,7 +208,6 @@
 
           <div class="chat">
             <div class="chatLog" id="chatLog"></div>
-
             <div class="chatBar">
               <button class="scopeBtn">Всем</button>
               <input id="msg" placeholder="Введите сообщение" />
@@ -178,6 +218,7 @@
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </main>
@@ -186,6 +227,7 @@
   <script>
     const canvas = document.getElementById("board");
     const ctx = canvas.getContext("2d");
+    const wrap = document.getElementById("boardWrap");
     const chatLog = document.getElementById("chatLog");
 
     function addLine(text, color="#cfd6db"){
@@ -193,7 +235,7 @@
       d.textContent=text;
       d.style.color=color;
       chatLog.appendChild(d);
-      if(chatLog.children.length>2) chatLog.removeChild(chatLog.firstChild);
+      if(chatLog.children.length>4) chatLog.removeChild(chatLog.firstChild);
     }
 
     const CORNER=120, N=9;
@@ -244,16 +286,6 @@
       {logo:"Radisson", stripe:"#a855f7", price:"3,000k"},
       {logo:"HolidayInn", stripe:"#a855f7", price:"3,000k"},
     ];
-
-    function resize(){
-      const dpr=Math.max(1, Math.min(2.5, window.devicePixelRatio||1));
-      const r=canvas.getBoundingClientRect();
-      canvas.width=Math.round(r.width*dpr);
-      canvas.height=Math.round(r.height*dpr);
-      ctx.setTransform(dpr,0,0,dpr,0,0);
-      draw();
-    }
-    window.addEventListener("resize", resize);
 
     function drawCell(x,y,w,h){
       ctx.fillStyle="#fff";
@@ -323,54 +355,61 @@
     }
 
     function draw(){
-      const W=canvas.getBoundingClientRect().width;
-      const H=canvas.getBoundingClientRect().height;
-      ctx.clearRect(0,0,W,H);
+      const side = Math.min(wrap.clientWidth, wrap.clientHeight);
+      if(!side || side < 10) return;
 
-      // общий фон внутри борды (темный)
+      // DPR
+      const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+      canvas.width = Math.round(side * dpr);
+      canvas.height = Math.round(side * dpr);
+      canvas.style.width = side + "px";
+      canvas.style.height = side + "px";
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+
+      ctx.clearRect(0,0,side,side);
+
+      // фон поля
       ctx.fillStyle="#15181b";
-      ctx.fillRect(0,0,W,H);
+      ctx.fillRect(0,0,side,side);
 
-      const bx=0, by=0;
-      const side=Math.min(W,H);
-      const inner=side-2*CORNER;
-      const step=inner/N;
+      const inner = side - 2*CORNER;
+      const step = inner / N;
 
-      // рамка борды (как на скрине)
+      // темная рамка как в рефе
       ctx.fillStyle="#0f0f12";
-      ctx.fillRect(bx,by,side,side);
+      ctx.fillRect(0,0,side,side);
 
       // углы
-      drawCell(bx,by,CORNER,CORNER); // TL
+      drawCell(0,0,CORNER,CORNER);
       ctx.save();
-      ctx.translate(bx+CORNER/2, by+CORNER/2);
+      ctx.translate(CORNER/2, CORNER/2);
       ctx.fillStyle="#111"; ctx.font="900 44px system-ui";
       ctx.textAlign="center"; ctx.textBaseline="middle";
       ctx.fillText("🚀",0,-10);
       ctx.font="900 14px system-ui"; ctx.fillText("START",0,38);
       ctx.restore();
 
-      drawCell(bx+side-CORNER,by,CORNER,CORNER); // TR
+      drawCell(side-CORNER,0,CORNER,CORNER);
       ctx.save();
-      ctx.translate(bx+side-CORNER/2, by+CORNER/2);
+      ctx.translate(side-CORNER/2, CORNER/2);
       ctx.fillStyle="#111"; ctx.font="900 44px system-ui";
       ctx.textAlign="center"; ctx.textBaseline="middle";
       ctx.fillText("🍩",0,-10);
       ctx.font="900 14px system-ui"; ctx.fillText("GO TO",0,38);
       ctx.restore();
 
-      drawCell(bx+side-CORNER,by+side-CORNER,CORNER,CORNER); // BR
+      drawCell(side-CORNER,side-CORNER,CORNER,CORNER);
       ctx.save();
-      ctx.translate(bx+side-CORNER/2, by+side-CORNER/2);
+      ctx.translate(side-CORNER/2, side-CORNER/2);
       ctx.fillStyle="#111"; ctx.font="900 44px system-ui";
       ctx.textAlign="center"; ctx.textBaseline="middle";
       ctx.fillText("🎰",0,-10);
       ctx.font="900 14px system-ui"; ctx.fillText("JACKPOT",0,38);
       ctx.restore();
 
-      drawCell(bx,by+side-CORNER,CORNER,CORNER); // BL
+      drawCell(0,side-CORNER,CORNER,CORNER);
       ctx.save();
-      ctx.translate(bx+CORNER/2, by+side-CORNER/2);
+      ctx.translate(CORNER/2, side-CORNER/2);
       ctx.fillStyle="#111"; ctx.font="900 44px system-ui";
       ctx.textAlign="center"; ctx.textBaseline="middle";
       ctx.fillText("👮",0,-10);
@@ -379,7 +418,7 @@
 
       // TOP
       for(let i=0;i<N;i++){
-        const x=bx+CORNER+i*step, y=by;
+        const x=CORNER+i*step, y=0;
         drawCell(x,y,step,CORNER);
         const d=top[i+1]||{};
         if(d.stripe) stripeTop(x,y,step,d.stripe,d.price||"");
@@ -387,7 +426,7 @@
       }
       // RIGHT
       for(let i=0;i<N;i++){
-        const x=bx+side-CORNER, y=by+CORNER+i*step;
+        const x=side-CORNER, y=CORNER+i*step;
         drawCell(x,y,CORNER,step);
         const d=right[i]||{};
         if(d.stripe) stripeRight(x,y,CORNER,step,d.stripe,d.price||"");
@@ -395,7 +434,7 @@
       }
       // BOTTOM
       for(let i=0;i<N;i++){
-        const x=bx+side-CORNER-(i+1)*step, y=by+side-CORNER;
+        const x=side-CORNER-(i+1)*step, y=side-CORNER;
         drawCell(x,y,step,CORNER);
         const d=bottom[i]||{};
         if(d.stripe) stripeBottom(x,y,step,CORNER,d.stripe,d.price||"");
@@ -403,22 +442,35 @@
       }
       // LEFT
       for(let i=0;i<N;i++){
-        const x=bx, y=by+side-CORNER-(i+1)*step;
+        const x=0, y=side-CORNER-(i+1)*step;
         drawCell(x,y,CORNER,step);
         const d=left[i]||{};
         if(d.stripe) stripeLeft(x,y,step,d.stripe,d.price||"");
         if(d.logo) textInCell(x,y,CORNER,step,d.logo,false);
       }
 
-      // центр (серый как на скрине)
+      // центр
       ctx.fillStyle="#2f363b";
-      ctx.fillRect(bx+CORNER,by+CORNER,side-2*CORNER,side-2*CORNER);
+      ctx.fillRect(CORNER, CORNER, side-2*CORNER, side-2*CORNER);
     }
+
+    // ВАЖНО: ждём пока Telegram даст нормальные размеры
+    function safeRender(){
+      const w = wrap.clientWidth, h = wrap.clientHeight;
+      if(w > 50 && h > 50){
+        draw();
+      } else {
+        requestAnimationFrame(safeRender);
+      }
+    }
+
+    window.addEventListener("resize", () => safeRender());
+    window.addEventListener("orientationchange", () => setTimeout(safeRender, 200));
 
     addLine("MikClever1 выбрасывает 4:5", "#ff5a5a");
     addLine("MikClever1 попадает на Lacoste и задумывается о покупке", "#ff5a5a");
 
-    setTimeout(resize, 0);
+    safeRender();
   </script>
 </body>
 </html>
