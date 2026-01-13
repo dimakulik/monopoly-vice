@@ -1,53 +1,49 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>monopoly_tg</title>
-
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
-
 <body>
-  <div class="screen">
-    <div id="viewport" class="viewport">
-      <div id="canvas" class="canvas">
-        <aside id="players" class="players"></aside>
+  <div id="app">
+    <aside id="playersPanel">
+      <div id="players"></div>
+    </aside>
 
-        <main class="gameArea">
-          <div id="board" class="board">
-            <!-- ВАЖНО: поле теперь РИСУЕТСЯ одним canvas -->
-            <canvas id="boardCanvas" width="760" height="760"></canvas>
+    <main id="game">
+      <div id="viewport">
+        <div id="canvas">
+          <canvas id="boardCanvas"></canvas>
+          <div id="debug"></div>
+        </div>
+
+        <div id="uiCenter">
+          <div id="turnCard">
+            <div class="turnTitle">Ваш ход!</div>
+            <div class="turnSub">Вперёд, к новым победам!</div>
+            <button id="rollBtn">Бросить кубики</button>
           </div>
 
-          <div class="hud">
-            <div id="turnBanner" class="turnBanner">
-              <div class="turnTitle">Ваш ход!</div>
-              <div class="turnSub">Вперёд, к новым победам!</div>
-              <button id="rollBtn" class="btn" type="button">Бросить кубики</button>
+          <div id="chatBox">
+            <div id="chatLog"></div>
+            <div id="chatBar">
+              <input id="chatInput" placeholder="Введите сообщение..." />
+              <button id="sendBtn" aria-label="send">▶</button>
             </div>
-
-            <div class="chat">
-              <div id="chatLog" class="chatLog"></div>
-              <div class="chatInput">
-                <input id="chatInput" type="text" placeholder="Введите сообщение..." />
-                <button id="sendBtn" class="btn mini" type="button">▶</button>
-              </div>
-            </div>
-
-            <div id="diceOverlay" class="diceOverlay hidden">
-              <div class="die">⚄</div>
-              <div class="die">⚁</div>
-            </div>
-
-            <div id="debug" class="debug"></div>
           </div>
-        </main>
+        </div>
+
+        <div id="diceOverlay" class="hidden">
+          <div class="die">⚀</div>
+          <div class="die">⚀</div>
+        </div>
       </div>
-    </div>
+    </main>
   </div>
 
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
