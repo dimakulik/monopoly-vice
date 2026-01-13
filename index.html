@@ -1,348 +1,340 @@
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-<title>monopoly_tg</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>monopoly_tg</title>
 
-<style>
-  *{box-sizing:border-box}
-  html,body{
-    margin:0;padding:0;width:100%;height:100%;
-    background:#2b353d;overflow:hidden;
-    font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial;
-  }
+  <style>
+    *{box-sizing:border-box}
+    html,body{
+      margin:0;padding:0;
+      width:100%;height:100%;
+      background:#2b353d;
+      overflow:hidden;
+      font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial;
+    }
 
-  :root{
-    --vh:1vh;
-    --board:300px;
+    :root{
+      --vh:1vh;
+      --board:300px;
 
-    --gap:6px;         /* расстояние от поля до цен */
-    --ph:18px;         /* высота цен сверху/снизу */
-    --pw:24px;         /* ширина цен слева/справа */
-  }
+      /* prices */
+      --gap:6px;   /* отступ от поля */
+      --ph:16px;   /* высота цен сверху/снизу (плоские как в monopoly-one) */
+      --pw:22px;   /* ширина цен слева/справа (плоские) */
+      --pr:6px;    /* радиус цен */
+    }
 
-  #app{
-    width:100%;
-    height:calc(var(--vh)*100);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
+    #app{
+      width:100%;
+      height:calc(var(--vh)*100);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
 
-  .outer{
-    position:relative;
-    width:calc(var(--board) + (var(--pw) + var(--gap))*2);
-    height:calc(var(--board) + (var(--ph) + var(--gap))*2);
-  }
+    .outer{
+      position:relative;
+      width:calc(var(--board) + (var(--pw) + var(--gap))*2);
+      height:calc(var(--board) + (var(--ph) + var(--gap))*2);
+    }
 
-  .board{
-    position:absolute;
-    left:50%;top:50%;
-    transform:translate(-50%,-50%);
-    width:var(--board);
-    height:var(--board);
-    background:rgba(10,14,18,.28);
-    box-shadow:0 14px 40px rgba(0,0,0,.35);
-    overflow:hidden;
-  }
+    .board{
+      position:absolute;
+      left:50%;top:50%;
+      transform:translate(-50%,-50%);
+      width:var(--board);
+      height:var(--board);
+      background:rgba(10,14,18,.28);
+      box-shadow:0 18px 50px rgba(0,0,0,.35);
+      overflow:hidden;
+    }
 
-  /* клетки */
-  .cell{
-    position:absolute;
-    background:#fff;
-    border:2px solid rgba(0,0,0,.15);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  .cell img{
-    width:100%;
-    height:100%;
-    object-fit:contain;
-    padding:6px;
-    display:block;
-  }
+    /* клетки */
+    .cell{
+      position:absolute;
+      background:#fff;
+      border:2px solid rgba(0,0,0,.22);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .cell img{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      padding:6px;
+      display:block;
+    }
 
-  /* цены */
-  .price{
-    position:absolute;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#fff;
-    font-weight:900;
-    border-radius:10px;
-    pointer-events:none;
-    overflow:hidden;
-    box-shadow:0 8px 18px rgba(0,0,0,.22);
-  }
-  .price span{
-    display:block;
-    white-space:nowrap;
-    font-size:11px;
-    transform-origin:center;
-  }
+    /* цены */
+    .price{
+      position:absolute;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#fff;
+      font-weight:900;
+      border-radius:var(--pr);
+      pointer-events:none;
+      overflow:hidden;
+      box-shadow:0 6px 14px rgba(0,0,0,.18);
+      font-variant-numeric: tabular-nums;
+    }
+    .price span{
+      display:block;
+      white-space:nowrap;
+      font-size:11px;
+      transform-origin:center;
+      line-height:1;
+    }
+    .price.tb{ height:var(--ph); padding:0 3px; }
+    .price.lr{ width:var(--pw); padding:0; }
+    .price.left  span{ transform:rotate(-90deg); }
+    .price.right span{ transform:rotate( 90deg); }
 
-  .price.tb{ height:var(--ph); padding:0 4px; }
-  .price.lr{ width:var(--pw); padding:0; }
-
-  .price.left  span{ transform:rotate(-90deg); }
-  .price.right span{ transform:rotate( 90deg); }
-
-  /* чат */
-  .chat{
-    position:absolute;
-    left:50%;
-    bottom:14%;
-    transform:translateX(-50%);
-    width:72%;
-    background:rgba(35,43,50,.85);
-    border-radius:14px;
-    padding:8px;
-    display:flex;
-    gap:8px;
-  }
-  .chat input{
-    flex:1;
-    height:36px;
-    border-radius:999px;
-    border:none;
-    padding:0 14px;
-    background:rgba(255,255,255,.12);
-    color:#fff;
-    outline:none;
-  }
-  .chat button{
-    width:42px;
-    border:none;
-    border-radius:999px;
-    background:rgba(255,255,255,.2);
-    color:#fff;
-    font-weight:900;
-  }
-</style>
+    /* чат */
+    .chat{
+      position:absolute;
+      left:50%;
+      bottom:14%;
+      transform:translateX(-50%);
+      width:72%;
+      background:rgba(35,43,50,.85);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:14px;
+      padding:8px;
+      display:flex;
+      gap:8px;
+      backdrop-filter: blur(8px);
+    }
+    .chat input{
+      flex:1;
+      height:36px;
+      border-radius:999px;
+      border:none;
+      padding:0 14px;
+      background:rgba(255,255,255,.12);
+      color:#fff;
+      outline:none;
+      min-width:0;
+    }
+    .chat button{
+      width:42px;
+      border:none;
+      border-radius:999px;
+      background:rgba(255,255,255,.2);
+      color:#fff;
+      font-weight:900;
+    }
+  </style>
 </head>
 
 <body>
-<div id="app">
-  <div class="outer" id="outer">
-    <div class="board" id="board">
-      <div class="chat">
-        <input placeholder="Введите сообщение">
-        <button>➤</button>
+  <div id="app">
+    <div class="outer" id="outer">
+      <div class="board" id="board">
+        <div class="chat">
+          <input placeholder="Введите сообщение" />
+          <button>➤</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<script>
-  const tg = window.Telegram?.WebApp;
-  if (tg) tg.expand();
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) { try { tg.expand(); } catch(e){} }
 
-  function setVH(){
-    const h = tg?.viewportStableHeight || window.innerHeight;
-    document.documentElement.style.setProperty('--vh', (h*0.01)+'px');
-  }
-  setVH();
-  window.addEventListener('resize', setVH);
-
-  const outer = document.getElementById('outer');
-  const board = document.getElementById('board');
-
-  const prices = ["200k","400k","600k","800k","1,000k","1,200k","1,500k","2,000k","2,200k","2,400k","2,600k","3,000k"];
-  const colors = ["#f97316","#ec4899","#22c55e","#3b82f6","#a855f7","#ef4444"];
-  const CORNERS = new Set([0,10,20,30]);
-
-  const CELL_COUNT = 40;
-  const cells = [];
-  const tags  = [];
-  const cellBox = Array.from({length:CELL_COUNT}, ()=>({x:0,y:0,w:0,h:0}));
-
-  // простая заглушка картинки
-  const logoSVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">
-      <rect width="240" height="240" fill="#fff"/>
-      <text x="50%" y="58%" font-size="36" text-anchor="middle" fill="#000">GO</text>
-    </svg>`
-  );
-
-  // build DOM
-  for(let i=0;i<CELL_COUNT;i++){
-    const c = document.createElement('div');
-    c.className = 'cell';
-    const img = document.createElement('img');
-    img.src = logoSVG;
-    c.appendChild(img);
-    board.appendChild(c);
-    cells.push(c);
-
-    const p = document.createElement('div');
-    p.className = 'price';
-    p.style.background = colors[i % colors.length];
-    p.innerHTML = `<span>${prices[i % prices.length]}</span>`;
-    if (CORNERS.has(i)) p.style.display = 'none';
-    outer.appendChild(p);
-    tags.push(p);
-  }
-
-  // auto fit text inside tag
-  function fit(tag){
-    if (tag.style.display === 'none') return;
-    const span = tag.querySelector('span');
-    if (!span) return;
-
-    // reset rotation (rotation class already applies)
-    // measure by limiting dimension:
-    const isTB = tag.classList.contains('tb');
-    const limit = isTB ? tag.clientWidth : tag.clientHeight;
-
-    // temporarily remove scale, keep rotation
-    const baseTransform = span.style.transform; // may be empty, rotation from CSS
-    span.style.transform = ''; // let CSS rotate
-    const needed = span.scrollWidth;
-
-    const scale = Math.min(1, (limit - 2) / Math.max(1, needed));
-    // keep CSS rotation + add scale via inline
-    // easiest: append scale using inline transform while keeping CSS rotation:
-    // We do it by setting scale only; CSS rotation still applies because transform is overridden by inline.
-    // So we must reapply rotation in inline based on side:
-    if (tag.classList.contains('lr')){
-      const rot = tag.classList.contains('right') ? 'rotate(90deg)' : 'rotate(-90deg)';
-      span.style.transform = `${rot} scale(${scale})`;
-    } else {
-      span.style.transform = `scale(${scale})`;
+    function setVH(){
+      const h = tg?.viewportStableHeight || window.innerHeight;
+      document.documentElement.style.setProperty('--vh', (h*0.01)+'px');
     }
-  }
+    setVH();
+    window.addEventListener('resize', setVH);
 
-  // place cell helper
-  function placeCell(idx, x,y,w,h){
-    cellBox[idx] = {x,y,w,h};
-    Object.assign(cells[idx].style, {left:x+'px', top:y+'px', width:w+'px', height:h+'px'});
-  }
+    const outer = document.getElementById('outer');
+    const board = document.getElementById('board');
 
-  // place price STRICTLY from cellBox
-  function placePrice(idx, side){
-    const tag = tags[idx];
-    if (tag.style.display === 'none') return;
+    const prices = ["200k","400k","600k","800k","1,000k","1,200k","1,500k","2,000k","2,200k","2,400k","2,600k","3,000k"];
+    const colors = ["#f97316","#ec4899","#22c55e","#3b82f6","#a855f7","#ef4444"];
+    const CORNERS = new Set([0,10,20,30]);
 
-    const css = getComputedStyle(document.documentElement);
-    const gap = parseInt(css.getPropertyValue('--gap')) || 6;
-    const ph  = parseInt(css.getPropertyValue('--ph'))  || 18;
-    const pw  = parseInt(css.getPropertyValue('--pw'))  || 24;
+    const CELL_COUNT = 40;
+    const cells = [];
+    const tags  = [];
+    const cellBox = Array.from({length:CELL_COUNT}, ()=>({x:0,y:0,w:0,h:0}));
 
-    const b = cellBox[idx];
+    // заглушка логотипа (потом заменишь на свои картинки)
+    const logoSVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">
+        <rect width="240" height="240" fill="#fff"/>
+        <text x="50%" y="58%" font-size="36" text-anchor="middle" fill="#000">GO</text>
+      </svg>`
+    );
 
-    // board offset inside outer
-    const br = board.getBoundingClientRect();
-    const or = outer.getBoundingClientRect();
-    const ox = br.left - or.left;
-    const oy = br.top  - or.top;
+    // build DOM
+    for(let i=0;i<CELL_COUNT;i++){
+      const c = document.createElement('div');
+      c.className = 'cell';
+      const img = document.createElement('img');
+      img.src = logoSVG;
+      c.appendChild(img);
+      board.appendChild(c);
+      cells.push(c);
 
-    let x=0,y=0,w=0,h=0, cls='';
-
-    if (side === 'top'){
-      cls = 'tb';
-      x = b.x;
-      y = -ph - gap;
-      w = b.w;
-      h = ph;
-    }
-    if (side === 'bottom'){
-      cls = 'tb';
-      x = b.x;
-      y = parseInt(getComputedStyle(board).height) + gap;
-      w = b.w;
-      h = ph;
-    }
-    if (side === 'left'){
-      cls = 'lr left';
-      x = -pw - gap;
-      y = b.y;
-      w = pw;
-      h = b.h;
-    }
-    if (side === 'right'){
-      cls = 'lr right';
-      x = parseInt(getComputedStyle(board).width) + gap;
-      y = b.y;
-      w = pw;
-      h = b.h;
+      const p = document.createElement('div');
+      p.className = 'price';
+      p.style.background = colors[i % colors.length];
+      p.innerHTML = `<span>${prices[i % prices.length]}</span>`;
+      if (CORNERS.has(i)) p.style.display = 'none'; // углы без цен
+      outer.appendChild(p);
+      tags.push(p);
     }
 
-    tag.className = 'price ' + cls;
-    Object.assign(tag.style, {left:(ox+x)+'px', top:(oy+y)+'px', width:w+'px', height:h+'px'});
-    fit(tag);
-  }
+    // автоподжим текста, чтобы всегда влезал
+    function fit(tag){
+      if (tag.style.display === 'none') return;
+      const span = tag.querySelector('span');
+      if (!span) return;
 
-  function layout(){
-    const size = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--board')) || 300;
-    const corner = Math.floor(size * 0.135);
-    const step = Math.floor((size - corner*2) / 9);
+      const isTB = tag.classList.contains('tb');
+      const limit = isTB ? tag.clientWidth : tag.clientHeight;
 
-    // ---- CELLS (как было) ----
-    placeCell(0, 0, 0, corner, corner);
+      // убираем inline transform чтобы CSS rotation работал
+      span.style.transform = '';
 
-    // top 1..9 left->right
-    for(let i=1;i<=9;i++){
-      placeCell(i, corner + (i-1)*step, 0, step, corner);
-    }
-    placeCell(10, size-corner, 0, corner, corner);
+      // измеряем после применения CSS-rotation
+      const needed = span.scrollWidth;
+      const scale = Math.min(1, (limit - 2) / Math.max(1, needed));
 
-    // right 11..19 top->bottom
-    for(let i=11;i<=19;i++){
-      placeCell(i, size-corner, corner + (i-11)*step, corner, step);
-    }
-    placeCell(20, size-corner, size-corner, corner, corner);
-
-    // bottom 21..29 right->left
-    for(let i=21;i<=29;i++){
-      placeCell(i, size-corner - (i-20)*step, size-corner, step, corner);
-    }
-    placeCell(30, 0, size-corner, corner, corner);
-
-    // left 31..39 bottom->top
-    for(let i=31;i<=39;i++){
-      placeCell(i, 0, size-corner - (i-30)*step, corner, step);
+      if (tag.classList.contains('lr')) {
+        const rot = tag.classList.contains('right') ? 'rotate(90deg)' : 'rotate(-90deg)';
+        span.style.transform = `${rot} scale(${scale})`;
+      } else {
+        span.style.transform = `scale(${scale})`;
+      }
     }
 
-    // ---- PRICES (СТРОГО ОТ КЛЕТКИ) ----
-    // top: 1..9
-    for(let i=1;i<=9;i++) placePrice(i, 'top');
+    function placeCell(idx, x,y,w,h){
+      cellBox[idx] = {x,y,w,h};
+      Object.assign(cells[idx].style, {left:x+'px', top:y+'px', width:w+'px', height:h+'px'});
+    }
 
-    // right: 11..19
-    for(let i=11;i<=19;i++) placePrice(i, 'right');
+    // ставим цену строго по координате клетки (это фиксит верх/низ)
+    function placePrice(idx, side){
+      const tag = tags[idx];
+      if (tag.style.display === 'none') return;
 
-    // bottom: 21..29
-    for(let i=21;i<=29;i++) placePrice(i, 'bottom');
+      const css = getComputedStyle(document.documentElement);
+      const gap = parseInt(css.getPropertyValue('--gap')) || 6;
+      const ph  = parseInt(css.getPropertyValue('--ph'))  || 16;
+      const pw  = parseInt(css.getPropertyValue('--pw'))  || 22;
 
-    // left: 31..39
-    for(let i=31;i<=39;i++) placePrice(i, 'left');
+      const b = cellBox[idx];
 
-    // corners hidden
-    [0,10,20,30].forEach(i => tags[i].style.display = 'none');
-  }
+      const br = board.getBoundingClientRect();
+      const or = outer.getBoundingClientRect();
+      const ox = br.left - or.left;
+      const oy = br.top  - or.top;
 
-  function resize(){
-    const H = tg?.viewportStableHeight || innerHeight;
-    const W = innerWidth;
+      const boardW = parseInt(getComputedStyle(board).width);
+      const boardH = parseInt(getComputedStyle(board).height);
 
-    // board fits with outer prices
-    const gap=6, ph=18, pw=24;
-    const maxOuterW = W - 20;
-    const maxOuterH = H - 160;
+      let x=0,y=0,w=0,h=0, cls='';
 
-    const boardMaxByW = maxOuterW - 2*(pw+gap);
-    const boardMaxByH = maxOuterH - 2*(ph+gap);
+      if (side === 'top'){
+        cls = 'tb';
+        x = b.x;
+        y = -ph - gap;
+        w = b.w;
+        h = ph;
+      } else if (side === 'bottom'){
+        cls = 'tb';
+        x = b.x;
+        y = boardH + gap;
+        w = b.w;
+        h = ph;
+      } else if (side === 'left'){
+        cls = 'lr left';
+        x = -pw - gap;
+        y = b.y;
+        w = pw;
+        h = b.h;
+      } else if (side === 'right'){
+        cls = 'lr right';
+        x = boardW + gap;
+        y = b.y;
+        w = pw;
+        h = b.h;
+      }
 
-    const size = Math.max(240, Math.floor(Math.min(boardMaxByW, boardMaxByH)));
-    document.documentElement.style.setProperty('--board', size + 'px');
+      tag.className = 'price ' + cls;
+      Object.assign(tag.style, {left:(ox+x)+'px', top:(oy+y)+'px', width:w+'px', height:h+'px'});
+      fit(tag);
+    }
 
-    requestAnimationFrame(layout);
-  }
+    function layout(){
+      const size = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--board')) || 300;
+      const corner = Math.floor(size * 0.135);
+      const step = Math.floor((size - corner*2) / 9);
 
-  resize();
-  window.addEventListener('resize', resize);
-</script>
+      // клетки
+      placeCell(0, 0, 0, corner, corner);
+
+      // top 1..9 left->right
+      for(let i=1;i<=9;i++){
+        placeCell(i, corner + (i-1)*step, 0, step, corner);
+      }
+      placeCell(10, size-corner, 0, corner, corner);
+
+      // right 11..19 top->bottom
+      for(let i=11;i<=19;i++){
+        placeCell(i, size-corner, corner + (i-11)*step, corner, step);
+      }
+      placeCell(20, size-corner, size-corner, corner, corner);
+
+      // bottom 21..29 right->left
+      for(let i=21;i<=29;i++){
+        placeCell(i, size-corner - (i-20)*step, size-corner, step, corner);
+      }
+      placeCell(30, 0, size-corner, corner, corner);
+
+      // left 31..39 bottom->top
+      for(let i=31;i<=39;i++){
+        placeCell(i, 0, size-corner - (i-30)*step, corner, step);
+      }
+
+      // цены (без углов)
+      for(let i=1;i<=9;i++) placePrice(i, 'top');
+      for(let i=11;i<=19;i++) placePrice(i, 'right');
+      for(let i=21;i<=29;i++) placePrice(i, 'bottom');
+      for(let i=31;i<=39;i++) placePrice(i, 'left');
+
+      // углы скрываем жёстко
+      [0,10,20,30].forEach(i => tags[i].style.display = 'none');
+    }
+
+    function resize(){
+      const H = tg?.viewportStableHeight || innerHeight;
+      const W = innerWidth;
+
+      const gap=6, ph=16, pw=22;
+      const maxOuterW = W - 20;
+      const maxOuterH = H - 160;
+
+      const boardMaxByW = maxOuterW - 2*(pw+gap);
+      const boardMaxByH = maxOuterH - 2*(ph+gap);
+
+      const size = Math.max(240, Math.floor(Math.min(boardMaxByW, boardMaxByH)));
+      document.documentElement.style.setProperty('--board', size + 'px');
+
+      requestAnimationFrame(layout);
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+  </script>
 </body>
 </html>
