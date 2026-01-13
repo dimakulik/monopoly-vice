@@ -2,55 +2,440 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
   <title>monopoly_tg</title>
-  <link rel="stylesheet" href="./styles.css" />
+
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #2b353d;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    :root{
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+
+      --gap: 10px;
+      --players-w: 90px;
+      --actions-w: 54px;
+      --board-size: 340px;
+    }
+
+    #app{
+      width: 100%;
+      height: 100%;
+      padding: calc(var(--safe-top) + 10px) calc(var(--safe-right) + 10px)
+               calc(var(--safe-bottom) + 10px) calc(var(--safe-left) + 10px);
+      display: flex;
+      gap: var(--gap);
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* LEFT */
+    .players{
+      width: var(--players-w);
+      min-width: var(--players-w);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-self: center;
+    }
+
+    .player-card{
+      height: 88px;
+      border-radius: 16px;
+      background: rgba(20, 26, 30, 0.55);
+      padding: 8px;
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      grid-template-rows: 1fr 1fr;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+    }
+
+    .player-avatar{
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #1b2329;
+      border: 4px solid rgba(255,255,255,0.10);
+      grid-row: 1 / 3;
+    }
+
+    .player-name{
+      color: #e8eef3;
+      font-size: 12px;
+      line-height: 1.1;
+      opacity: 0.95;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .player-money{
+      color: #e8eef3;
+      font-size: 14px;
+      font-weight: 800;
+      opacity: 0.95;
+    }
+
+    /* CENTER */
+    .center{
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .board{
+      width: var(--board-size);
+      height: var(--board-size);
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(10, 14, 18, 0.28);
+      box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+    }
+
+    .board-center{
+      position: absolute;
+      inset: 18% 18% 22% 18%;
+      background: rgba(28, 36, 42, 0.35);
+      border-radius: 12px;
+    }
+
+    /* RIGHT */
+    .actions{
+      width: var(--actions-w);
+      min-width: var(--actions-w);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-self: center;
+    }
+
+    .act{
+      height: 44px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.06);
+      color: #e8eef3;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    /* CELLS */
+    .cell{
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,0.12);
+      overflow: hidden;
+    }
+
+    .cell img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .price{
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 14px;
+      font-size: 10px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    /* CHAT (inside board, bottom center) */
+    .chat{
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 10px;
+      width: 78%;
+      background: rgba(35, 43, 50, 0.82);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 8px 8px 10px;
+      backdrop-filter: blur(8px);
+    }
+
+    .chat-top{
+      color: rgba(255,255,255,0.82);
+      font-size: 12px;
+      padding: 0 6px 6px;
+    }
+
+    .chat-row{
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .chat input{
+      flex: 1;
+      height: 38px;
+      border-radius: 999px;
+      border: none;
+      outline: none;
+      padding: 0 14px;
+      background: rgba(255,255,255,0.10);
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .chat-send{
+      width: 40px;
+      height: 38px;
+      border-radius: 999px;
+      border: none;
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 380px){
+      :root{ --players-w: 82px; --actions-w: 50px; --gap: 8px; }
+      .player-card{ height: 82px; }
+    }
+  </style>
 </head>
 
 <body>
   <div id="app">
-    <!-- LEFT: players -->
-    <aside class="players" id="players">
-      <!-- JS заполнит -->
-    </aside>
+    <aside class="players" id="players"></aside>
 
-    <!-- CENTER: board area -->
     <main class="center">
-      <div class="board-shell">
-        <div class="board" id="board">
-          <!-- клетки вокруг поля (JS) -->
-          <div class="board-center">
-            <!-- пустой центр как на скрине -->
-          </div>
+      <div class="board" id="board">
+        <div class="board-center"></div>
 
-          <!-- чат как на скрине: внутри поля снизу по центру -->
-          <div class="chat">
-            <div class="chat-top">
-              <span class="chat-room">Всем</span>
-            </div>
-            <div class="chat-row">
-              <input id="chatInput" type="text" placeholder="Введите сообщение" />
-              <button id="sendBtn" class="chat-send" title="Отправить">➤</button>
-            </div>
+        <div class="chat">
+          <div class="chat-top">Всем</div>
+          <div class="chat-row">
+            <input id="chatInput" type="text" placeholder="Введите сообщение" />
+            <button id="sendBtn" class="chat-send">➤</button>
           </div>
         </div>
       </div>
     </main>
 
-    <!-- RIGHT: actions -->
     <aside class="actions">
-      <button class="act"><span>⟳</span></button>
-      <button class="act"><span>R</span></button>
-      <button class="act"><span>friend</span></button>
-      <button class="act"><span>🔑</span></button>
-      <button class="act"><span>A</span></button>
-      <button class="act"><span>coca</span></button>
-      <button class="act"><span>pepsi</span></button>
-      <button class="act"><span>fanta</span></button>
+      <button class="act">⟳</button>
+      <button class="act">R</button>
+      <button class="act">friend</button>
+      <button class="act">🔑</button>
+      <button class="act">A</button>
+      <button class="act">coca</button>
+      <button class="act">pepsi</button>
+      <button class="act">fanta</button>
     </aside>
   </div>
 
-  <script src="./app.js"></script>
+  <script>
+    // Telegram WebApp (если внутри ТГ)
+    const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    if (tg) {
+      try {
+        tg.expand();
+        tg.setBackgroundColor("#2b353d");
+        tg.setHeaderColor("#2b353d");
+      } catch (e) {}
+    }
+
+    const playersEl = document.getElementById("players");
+    const board = document.getElementById("board");
+    const app = document.getElementById("app");
+
+    // Игроки (пример)
+    const players = [
+      { name: "pehi44", money: "17,500k", color: "#ff5b5b" },
+      { name: "dimakulik", money: "17,500k", color: "#34d399" },
+      { name: "Sanich303", money: "17,500k", color: "#60a5fa" },
+    ];
+
+    function renderPlayers(){
+      playersEl.innerHTML = "";
+      players.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "player-card";
+
+        const av = document.createElement("div");
+        av.className = "player-avatar";
+        av.style.borderColor = p.color;
+
+        const name = document.createElement("div");
+        name.className = "player-name";
+        name.textContent = p.name;
+
+        const money = document.createElement("div");
+        money.className = "player-money";
+        money.textContent = `$ ${p.money}`;
+
+        card.appendChild(av);
+        card.appendChild(name);
+        card.appendChild(money);
+        playersEl.appendChild(card);
+      });
+    }
+
+    // Логотипы-заглушки (потом заменишь на свои png/jpg)
+    const logos = [
+      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><rect width='220' height='220' fill='%23fff'/><text x='50%25' y='58%25' font-size='56' text-anchor='middle' fill='%23000'>GO</text></svg>",
+      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><rect width='220' height='220' fill='%23fff'/><text x='50%25' y='58%25' font-size='40' text-anchor='middle' fill='%23000'>NOKIA</text></svg>",
+      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><rect width='220' height='220' fill='%23fff'/><text x='50%25' y='58%25' font-size='44' text-anchor='middle' fill='%23000'>BOSS</text></svg>",
+      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><rect width='220' height='220' fill='%23fff'/><text x='50%25' y='58%25' font-size='40' text-anchor='middle' fill='%23000'>APPLE</text></svg>",
+      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><rect width='220' height='220' fill='%23fff'/><text x='50%25' y='58%25' font-size='38' text-anchor='middle' fill='%23000'>ADIDAS</text></svg>",
+    ];
+
+    const prices = ["200k","400k","600k","800k","1,000k","1,200k","1,500k","2,000k","2,200k","2,400k","2,600k","3,000k"];
+    const priceColors = ["#f97316","#ec4899","#22c55e","#3b82f6","#a855f7","#ef4444"];
+
+    const CELL_COUNT = 40; // как monopoly-one
+    let cells = [];
+
+    function getLogo(i){ return logos[i % logos.length]; }
+    function getPrice(i){ return prices[i % prices.length]; }
+    function getPriceColor(i){ return priceColors[i % priceColors.length]; }
+
+    function buildCells(){
+      // удалить старые
+      cells.forEach(c => c.remove());
+      cells = [];
+
+      for (let i=0;i<CELL_COUNT;i++){
+        const el = document.createElement("div");
+        el.className = "cell";
+
+        const img = document.createElement("img");
+        img.src = getLogo(i);
+
+        const bar = document.createElement("div");
+        bar.className = "price";
+        bar.style.background = getPriceColor(i);
+        bar.textContent = getPrice(i);
+
+        el.appendChild(img);
+        el.appendChild(bar);
+
+        board.appendChild(el);
+        cells.push(el);
+      }
+    }
+
+    // ВАЖНО: 40 клеток без дублей:
+    // 0 угол, 1-9 верх между углами (9), 10 угол,
+    // 11-19 правый между (9), 20 угол,
+    // 21-29 низ между (9), 30 угол,
+    // 31-39 левый между (9)
+    function layoutCells(size){
+      const corner = Math.floor(size * 0.14); // угол чуть больше
+      const step = Math.floor((size - corner*2) / 9); // 9 клеток между углами
+
+      const setRect = (el, x, y, w, h) => {
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+        el.style.width = w + "px";
+        el.style.height = h + "px";
+        el.style.display = "flex";
+      };
+
+      // 0: top-left corner
+      setRect(cells[0], 0, 0, corner, corner);
+
+      // 1..9: top row between corners (left->right)
+      for (let i=1;i<=9;i++){
+        const x = corner + (i-1)*step;
+        setRect(cells[i], x, 0, step, corner);
+      }
+
+      // 10: top-right corner
+      setRect(cells[10], size - corner, 0, corner, corner);
+
+      // 11..19: right side between corners (top->bottom)
+      for (let k=11;k<=19;k++){
+        const i = k-11; // 0..8
+        const y = corner + i*step;
+        setRect(cells[k], size - corner, y, corner, step);
+      }
+
+      // 20: bottom-right corner
+      setRect(cells[20], size - corner, size - corner, corner, corner);
+
+      // 21..29: bottom row between corners (right->left)
+      for (let k=21;k<=29;k++){
+        const i = k-21; // 0..8
+        const x = size - corner - (i+1)*step;
+        setRect(cells[k], x, size - corner, step, corner);
+      }
+
+      // 30: bottom-left corner
+      setRect(cells[30], 0, size - corner, corner, corner);
+
+      // 31..39: left side between corners (bottom->top)
+      for (let k=31;k<=39;k++){
+        const i = k-31; // 0..8
+        const y = size - corner - (i+1)*step;
+        setRect(cells[k], 0, y, corner, step);
+      }
+    }
+
+    function updateBoardSize(){
+      const rect = app.getBoundingClientRect();
+      const rootStyle = getComputedStyle(document.documentElement);
+
+      const playersW = parseInt(rootStyle.getPropertyValue("--players-w")) || 90;
+      const actionsW = parseInt(rootStyle.getPropertyValue("--actions-w")) || 54;
+      const gap = parseInt(rootStyle.getPropertyValue("--gap")) || 10;
+
+      // доступная ширина под поле = вся ширина - левый блок - правый блок - зазоры
+      const maxByWidth = rect.width - playersW - actionsW - gap*2;
+      const maxByHeight = rect.height; // поле по высоте центрируем, чат внутри
+
+      const size = Math.max(220, Math.floor(Math.min(maxByWidth, maxByHeight)));
+      document.documentElement.style.setProperty("--board-size", size + "px");
+
+      layoutCells(size);
+    }
+
+    // chat haptic
+    document.getElementById("sendBtn").addEventListener("click", () => {
+      const inp = document.getElementById("chatInput");
+      const txt = (inp.value || "").trim();
+      if (!txt) return;
+      inp.value = "";
+      if (tg) { try { tg.HapticFeedback.impactOccurred("light"); } catch(e){} }
+    });
+
+    renderPlayers();
+    buildCells();
+    updateBoardSize();
+
+    window.addEventListener("resize", () => {
+      clearTimeout(window.__rz);
+      window.__rz = setTimeout(updateBoardSize, 60);
+    });
+  </script>
 </body>
 </html>
