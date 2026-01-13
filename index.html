@@ -21,11 +21,10 @@
       --safe-left: env(safe-area-inset-left, 0px);
       --safe-right: env(safe-area-inset-right, 0px);
 
-      --vh: 1vh;          /* JS fix for Telegram */
-      --board: 320px;     /* JS sets */
+      --vh: 1vh;
+      --board: 320px; /* JS sets */
     }
 
-    /* full screen center */
     #app{
       width:100%;
       height: calc(var(--vh) * 100);
@@ -39,7 +38,6 @@
       justify-content:center;
     }
 
-    /* give big top air like monopoly-one and push board down */
     .stage{
       width:100%;
       height:100%;
@@ -49,12 +47,14 @@
     }
     .top-space{ flex: 1 1 auto; }
 
-    .board-wrap{
-      flex: 0 0 auto;
+    /* wrapper чуть больше поля, чтобы снаружи поместились ценники */
+    .outer{
+      position: relative;
+      width: calc(var(--board) + 70px);
+      height: calc(var(--board) + 70px);
       display:flex;
       align-items:center;
       justify-content:center;
-      width:100%;
     }
 
     .board{
@@ -72,7 +72,7 @@
       background: rgba(43,53,61,0.85);
     }
 
-    /* cells */
+    /* клетки = только логотип */
     .cell{
       position:absolute;
       background:#fff;
@@ -89,21 +89,24 @@
       padding:6px;
       display:block;
     }
-    .price{
+
+    /* ценники СНАРУЖИ поля */
+    .price-out{
       position:absolute;
-      left:0; right:0;
-      top:0;
-      height:16px;
       display:flex;
       align-items:center;
       justify-content:center;
       color:#fff;
-      font-size:11px;
-      font-weight:900;
-      letter-spacing:.2px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .2px;
+      border-radius: 6px;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.22);
+      user-select:none;
+      pointer-events:none;
     }
 
-    /* CHAT INSIDE BOARD (center-bottom of empty area) */
+    /* CHAT внутри поля внизу центра (как на твоём рефе) */
     .chat{
       position:absolute;
       left:50%;
@@ -155,7 +158,7 @@
     <div class="stage">
       <div class="top-space"></div>
 
-      <div class="board-wrap">
+      <div class="outer" id="outer">
         <div class="board" id="board">
           <div class="board-center"></div>
 
@@ -175,7 +178,6 @@
     const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
     if (tg) { try { tg.expand(); } catch(e){} }
 
-    // ✅ Telegram/iOS viewport fix
     function setVH(){
       const h = (tg && tg.viewportStableHeight) ? tg.viewportStableHeight : window.innerHeight;
       document.documentElement.style.setProperty("--vh", (h * 0.01) + "px");
@@ -184,9 +186,10 @@
     window.addEventListener("resize", () => { clearTimeout(window.__vh); window.__vh=setTimeout(setVH, 50); });
     if (tg && tg.onEvent) { try { tg.onEvent("viewportChanged", setVH); } catch(e){} }
 
+    const outer = document.getElementById("outer");
     const board = document.getElementById("board");
 
-    // placeholders (потом заменишь на реальные бренды)
+    // заглушки логотипов
     const logos = [
       "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' fill='%23fff'/><text x='50%25' y='58%25' font-size='54' text-anchor='middle' fill='%23000'>GO</text></svg>",
       "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' fill='%23fff'/><text x='50%25' y='58%25' font-size='38' text-anchor='middle' fill='%23000'>NOKIA</text></svg>",
@@ -199,39 +202,56 @@
 
     const CELL_COUNT = 40;
     let cells = [];
+    let priceTags = [];
 
     function getLogo(i){ return logos[i % logos.length]; }
     function getPrice(i){ return prices[i % prices.length]; }
     function getPriceColor(i){ return priceColors[i % priceColors.length]; }
 
-    function buildCells(){
+    function clearAll(){
       cells.forEach(c=>c.remove());
+      priceTags.forEach(p=>p.remove());
       cells = [];
+      priceTags = [];
+    }
+
+    function build(){
+      clearAll();
+
       for (let i=0;i<CELL_COUNT;i++){
+        // cell inside board
         const el = document.createElement("div");
         el.className = "cell";
 
         const img = document.createElement("img");
         img.src = getLogo(i);
 
-        const bar = document.createElement("div");
-        bar.className = "price";
-        bar.style.background = getPriceColor(i);
-        bar.textContent = getPrice(i);
-
         el.appendChild(img);
-        el.appendChild(bar);
         board.appendChild(el);
         cells.push(el);
+
+        // price outside (added to outer container)
+        const pr = document.createElement("div");
+        pr.className = "price-out";
+        pr.style.background = getPriceColor(i);
+        pr.textContent = getPrice(i);
+        outer.appendChild(pr);
+        priceTags.push(pr);
       }
     }
 
-    // 40 cells: 4 corners + 9 between each side
-    function layoutCells(size){
+    // 40 cells as: 0 TL, 1..9 top, 10 TR, 11..19 right, 20 BR, 21..29 bottom, 30 BL, 31..39 left
+    function layout(size){
       const corner = Math.floor(size * 0.135);
       const step = Math.floor((size - corner*2) / 9);
 
-      const set = (idx, x,y,w,h)=>{
+      // board inside outer is centered: its top-left in outer:
+      const outerRect = outer.getBoundingClientRect();
+      const boardRect = board.getBoundingClientRect();
+      const offX = boardRect.left - outerRect.left;
+      const offY = boardRect.top  - outerRect.top;
+
+      const setCell = (idx, x,y,w,h)=>{
         const el = cells[idx];
         el.style.left = x+"px";
         el.style.top  = y+"px";
@@ -239,43 +259,82 @@
         el.style.height = h+"px";
       };
 
-      set(0, 0, 0, corner, corner);
-      for(let i=1;i<=9;i++) set(i, corner+(i-1)*step, 0, step, corner);
-      set(10, size-corner, 0, corner, corner);
+      // price tag helper: position OUTSIDE corresponding side
+      const setPrice = (idx, x,y,w,h)=>{
+        const el = priceTags[idx];
+        el.style.left = (offX + x) + "px";
+        el.style.top  = (offY + y) + "px";
+        el.style.width  = w + "px";
+        el.style.height = h + "px";
+      };
 
+      // price thickness
+      const t = 18;     // height of price tag
+      const pad = 6;    // distance from board edge
+
+      // TL corner
+      setCell(0, 0, 0, corner, corner);
+      setPrice(0, 0, -t - pad, corner, t); // above board
+
+      // TOP 1..9
+      for(let i=1;i<=9;i++){
+        const x = corner+(i-1)*step;
+        setCell(i, x, 0, step, corner);
+        setPrice(i, x, -t - pad, step, t); // above
+      }
+
+      // TR corner
+      setCell(10, size-corner, 0, corner, corner);
+      setPrice(10, size-corner, -t - pad, corner, t);
+
+      // RIGHT 11..19
       for(let k=11;k<=19;k++){
         const i=k-11;
-        set(k, size-corner, corner+i*step, corner, step);
+        const y = corner+i*step;
+        setCell(k, size-corner, y, corner, step);
+        setPrice(k, size + pad, y, t+6, step); // right side, vertical block
       }
-      set(20, size-corner, size-corner, corner, corner);
 
+      // BR corner
+      setCell(20, size-corner, size-corner, corner, corner);
+      setPrice(20, size + pad, size-corner, t+6, corner);
+
+      // BOTTOM 21..29
       for(let k=21;k<=29;k++){
         const i=k-21;
-        set(k, size-corner-(i+1)*step, size-corner, step, corner);
+        const x = size-corner-(i+1)*step;
+        setCell(k, x, size-corner, step, corner);
+        setPrice(k, x, size + pad, step, t); // below
       }
-      set(30, 0, size-corner, corner, corner);
 
+      // BL corner
+      setCell(30, 0, size-corner, corner, corner);
+      setPrice(30, 0, size + pad, corner, t);
+
+      // LEFT 31..39
       for(let k=31;k<=39;k++){
         const i=k-31;
-        set(k, 0, size-corner-(i+1)*step, corner, step);
+        const y = size-corner-(i+1)*step;
+        setCell(k, 0, y, corner, step);
+        setPrice(k, -t - pad, y, t+6, step); // left side
       }
     }
 
     function updateBoardSize(){
-      // square that fits screen (no side panels)
       const H = (tg && tg.viewportStableHeight) ? tg.viewportStableHeight : window.innerHeight;
       const W = window.innerWidth;
 
-      // keep "air" above like reference: board smaller than full height
       const maxW = W - 20;
-      const maxH = H - 140; // запас под верх+низ, чтобы поле было не огромным
+      const maxH = H - 140;
       const size = Math.max(260, Math.floor(Math.min(maxW, maxH)));
 
       document.documentElement.style.setProperty("--board", size + "px");
-      layoutCells(size);
+
+      // после изменения размеров надо дать браузеру применить layout, потом считать rect
+      requestAnimationFrame(() => layout(size));
     }
 
-    buildCells();
+    build();
     updateBoardSize();
 
     window.addEventListener("resize", ()=>{
