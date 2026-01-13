@@ -25,9 +25,9 @@
       --board: 300px;
 
       /* price layout */
-      --price-pad: 6px;     /* gap from board */
-      --price-h: 18px;      /* top/bottom height */
-      --price-w: 34px;      /* left/right width (WIDER!) */
+      --price-pad: 6px;      /* gap from board */
+      --price-h: 18px;       /* top/bottom height */
+      --price-w: 24px;       /* left/right width (узко как в рефе) */
       --price-radius: 10px;
     }
 
@@ -107,35 +107,35 @@
       box-shadow: 0 8px 18px rgba(0,0,0,0.22);
       user-select:none;
       pointer-events:none;
-
-      /* always fit text */
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: clip;
-      padding: 0 8px;
+      overflow:hidden;
       font-variant-numeric: tabular-nums;
-      line-height: 1;
     }
 
-    /* top/bottom prices */
+    /* top/bottom */
     .price-out.tb{
       height: var(--price-h);
-      font-size: clamp(9px, 1.6vw, 12px);
+      padding: 0 4px; /* меньше паддинг */
+    }
+    .price-out.tb .txt{
+      white-space: nowrap;
+      font-size: clamp(8px, 1.35vw, 11px); /* меньше */
+      line-height: 1;
+      transform-origin: center;
     }
 
-    /* left/right prices: TEXT IS NORMAL (not rotated) */
+    /* left/right (вертикально) */
     .price-out.lr{
       width: var(--price-w);
-      padding: 0;                 /* no side padding, keep center */
-      font-size: clamp(9px, 1.6vw, 11px);
-      text-align:center;
+      padding: 0;
     }
-
-    /* make long values like "2,600k" fit by slightly scaling */
-    .price-out span{
-      display:block;
+    .price-out.lr .txt{
+      white-space: nowrap;
+      font-size: clamp(8px, 1.2vw, 10px);
+      line-height: 1;
       transform-origin: center;
-      transform: scaleX(0.92);
+      /* вертикально как в рефе */
+      transform: rotate(-90deg);
+      display:inline-block;
     }
 
     /* chat inside board */
@@ -260,9 +260,38 @@
         const pr = document.createElement("div");
         pr.className = "price-out";
         pr.style.background = getPriceColor(i);
-        pr.innerHTML = "<span>"+getPrice(i)+"</span>";
+        pr.innerHTML = `<span class="txt">${getPrice(i)}</span>`;
         outer.appendChild(pr);
         tags.push(pr);
+      }
+    }
+
+    // 🔥 авто-поджим текста: всегда влезает в любую плашку
+    function fitText(tag){
+      const txt = tag.querySelector(".txt");
+      if (!txt) return;
+
+      // reset
+      txt.style.transform = tag.classList.contains("lr") ? "rotate(-90deg) scale(1)" : "scale(1)";
+      // measure
+      const boxW = tag.clientWidth;
+      const boxH = tag.clientHeight;
+
+      // для tb: ограничение по ширине
+      if (tag.classList.contains("tb")){
+        const needed = txt.scrollWidth;
+        const scale = Math.min(1, (boxW - 2) / Math.max(1, needed));
+        txt.style.transform = `scale(${scale})`;
+        return;
+      }
+
+      // для lr: текст повернут, поэтому ограничение по "высоте" (после rotate ширина текста = высота)
+      if (tag.classList.contains("lr")){
+        // временно ставим rotate без scale чтобы снять размеры
+        txt.style.transform = "rotate(-90deg) scale(1)";
+        const needed = txt.scrollWidth; // после rotate ограничиваем по boxH
+        const scale = Math.min(1, (boxH - 2) / Math.max(1, needed));
+        txt.style.transform = `rotate(-90deg) scale(${scale})`;
       }
     }
 
@@ -277,8 +306,8 @@
 
       const css = getComputedStyle(document.documentElement);
       const pad = parseInt(css.getPropertyValue("--price-pad")) || 6;
-      const h   = parseInt(css.getPropertyValue("--price-h")) || 18;
-      const w   = parseInt(css.getPropertyValue("--price-w")) || 34;
+      const ph  = parseInt(css.getPropertyValue("--price-h")) || 18;
+      const pw  = parseInt(css.getPropertyValue("--price-w")) || 24;
 
       const setCell = (idx, x,y,W,H)=>{
         const el = cells[idx];
@@ -298,71 +327,75 @@
         el.classList.toggle("lr", type==="lr");
       };
 
-      // TL
+      // 0 TL
       setCell(0, 0, 0, corner, corner);
-      setTag(0, 0, -h - pad, corner, h, "tb");
+      setTag(0, 0, -ph - pad, corner, ph, "tb");
 
       // TOP 1..9
       for(let i=1;i<=9;i++){
         const x = corner+(i-1)*step;
         setCell(i, x, 0, step, corner);
-        setTag(i, x, -h - pad, step, h, "tb");
+        setTag(i, x, -ph - pad, step, ph, "tb");
       }
 
-      // TR
+      // 10 TR
       setCell(10, size-corner, 0, corner, corner);
-      setTag(10, size-corner, -h - pad, corner, h, "tb");
+      setTag(10, size-corner, -ph - pad, corner, ph, "tb");
 
       // RIGHT 11..19
       for(let k=11;k<=19;k++){
         const i=k-11;
         const y = corner+i*step;
         setCell(k, size-corner, y, corner, step);
-        setTag(k, size + pad, y, w, step, "lr");
+        setTag(k, size + pad, y, pw, step, "lr");
       }
 
-      // BR
+      // 20 BR
       setCell(20, size-corner, size-corner, corner, corner);
-      setTag(20, size + pad, size-corner, w, corner, "lr");
+      setTag(20, size + pad, size-corner, pw, corner, "lr");
 
       // BOTTOM 21..29
       for(let k=21;k<=29;k++){
         const i=k-21;
         const x = size-corner-(i+1)*step;
         setCell(k, x, size-corner, step, corner);
-        setTag(k, x, size + pad, step, h, "tb");
+        setTag(k, x, size + pad, step, ph, "tb");
       }
 
-      // BL
+      // 30 BL
       setCell(30, 0, size-corner, corner, corner);
-      setTag(30, 0, size + pad, corner, h, "tb");
+      setTag(30, 0, size + pad, corner, ph, "tb");
 
       // LEFT 31..39
       for(let k=31;k<=39;k++){
         const i=k-31;
         const y = size-corner-(i+1)*step;
         setCell(k, 0, y, corner, step);
-        setTag(k, -w - pad, y, w, step, "lr");
+        setTag(k, -pw - pad, y, pw, step, "lr");
       }
+
+      // после раскладки — поджимаем текст во всех ценниках
+      tags.forEach(fitText);
     }
 
     function updateBoardSize(){
       const H = (tg && tg.viewportStableHeight) ? tg.viewportStableHeight : window.innerHeight;
       const W = window.innerWidth;
 
-      const pad = 6, h = 18, w = 34;
+      // под iPhone лучше так:
+      const pad = 6, ph = 18, pw = 24;
 
       const maxOuterW = W - 20;
       const maxOuterH = H - 140;
 
-      const boardMaxByW = maxOuterW - 2*(w+pad);
-      const boardMaxByH = maxOuterH - 2*(h+pad);
+      const boardMaxByW = maxOuterW - 2*(pw+pad);
+      const boardMaxByH = maxOuterH - 2*(ph+pad);
 
       const size = Math.max(240, Math.floor(Math.min(boardMaxByW, boardMaxByH)));
 
       document.documentElement.style.setProperty("--price-pad", pad+"px");
-      document.documentElement.style.setProperty("--price-h", h+"px");
-      document.documentElement.style.setProperty("--price-w", w+"px");
+      document.documentElement.style.setProperty("--price-h", ph+"px");
+      document.documentElement.style.setProperty("--price-w", pw+"px");
       document.documentElement.style.setProperty("--board", size+"px");
 
       requestAnimationFrame(()=>layout(size));
