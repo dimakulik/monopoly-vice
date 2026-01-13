@@ -6,28 +6,28 @@
 })();
 
 /* =======================
-   CANVAS SIZES
-   BOARD_SIZE = само поле
-   OUTER_PAD  = запас под "вылезающие" ценники
-   CANVAS_SIZE = реальный размер canvas
+   SIZES
 ======================= */
-const BOARD_SIZE = 760;
-const OUTER_PAD  = 14;              // 10–16 норм (как на monopoly-one)
+const BOARD_SIZE = 760;      // поле
+const OUTER_PAD  = 28;       // запас вокруг, чтобы ценники реально "вылезали"
 const CANVAS_SIZE = BOARD_SIZE + OUTER_PAD*2;
+
+const CORNER = 92;
+const SIDE_CELLS = 9;
 
 let currentScale = 1;
 let isRolling = false;
 
+/* =======================
+   LAYOUT / FIT
+======================= */
 function setAppHeight(){
   document.documentElement.style.setProperty("--appH", `${window.innerHeight}px`);
 }
-
 function syncCanvasCssVars(){
-  // ВАЖНО: теперь верстка знает реальный размер canvas, иначе всё "поедет"
   document.documentElement.style.setProperty("--canvasW", `${CANVAS_SIZE}px`);
   document.documentElement.style.setProperty("--canvasH", `${CANVAS_SIZE}px`);
 }
-
 function fitCanvas(){
   const canvasWrap = document.getElementById("canvas");
   const viewport = document.getElementById("viewport");
@@ -52,23 +52,9 @@ function fitCanvas(){
   if(dbg) dbg.textContent = `scale=${s.toFixed(3)} viewport=${availW.toFixed(0)}x${availH.toFixed(0)}`;
 }
 
-function onResize(){
-  setAppHeight();
-  syncCanvasCssVars();
-  fitCanvas();
-  setupHiDPICanvas();
-  computeCellRects();
-  initTokenPositions();
-  draw();
-}
-
-window.addEventListener("resize", onResize);
-window.addEventListener("orientationchange", onResize);
-
 /* =======================
-   PLAYERS UI (⭐)
+   PLAYERS (⭐)
 ======================= */
-
 const players = [
   { name:"Artemlasvegas", stars:22000, active:false },
   { name:"Soloha",        stars:22850, active:true  },
@@ -85,7 +71,6 @@ function formatNum(n){
 }
 function renderPlayers(){
   const wrap = document.getElementById("players");
-  if(!wrap) return;
   wrap.innerHTML = "";
   players.forEach(p=>{
     const el = document.createElement("div");
@@ -95,16 +80,18 @@ function renderPlayers(){
       <div class="meta">
         <div class="name">${escapeHtml(p.name)}</div>
         <div class="money">⭐ ${formatNum(p.stars)}</div>
-      </div>
-    `;
+      </div>`;
     wrap.appendChild(el);
   });
 }
 
 /* =======================
    BOARD DATA (как 2-й скрин)
+   0  = JACKPOT (низ-право)
+   10 = IN JAIL (низ-лево)
+   20 = START 🚀 (верх-лево)
+   30 = GO TO 🍩 (верх-право)
 ======================= */
-
 function formatK(n){
   if(n === null || n === undefined) return "";
   return Math.round(n).toLocaleString("en-US") + "k";
@@ -112,10 +99,8 @@ function formatK(n){
 function cell(label, priceK=null, priceBg="", icon="", kind="prop"){
   return { label, priceK, priceBg, icon, kind };
 }
-
 const cells40 = new Array(40);
 
-// corners
 cells40[0]  = cell("JACKPOT", null, "", "🎰", "corner");
 cells40[10] = cell("IN JAIL", null, "", "👮", "corner");
 cells40[20] = cell("START",   null, "", "🚀", "corner");
@@ -170,15 +155,10 @@ for(let i=0;i<40;i++){
 }
 
 /* =======================
-   CANVAS / GEOMETRY
+   CANVAS SETUP
 ======================= */
-
-const CORNER = 92;
-const SIDE_CELLS = 9;
-
 const canvasEl = document.getElementById("boardCanvas");
 const ctx = canvasEl.getContext("2d");
-
 let DPR = 1;
 let cellRects = [];
 
@@ -192,6 +172,9 @@ function setupHiDPICanvas(){
   ctx.imageSmoothingEnabled = true;
 }
 
+/* =======================
+   GEOMETRY
+======================= */
 function makeSteps(total, n){
   const base = Math.floor(total / n);
   const rem  = total - base * n;
@@ -200,13 +183,11 @@ function makeSteps(total, n){
   for(let i=0;i<n;i++) pos.push(pos[i] + sizes[i]);
   return { sizes, pos };
 }
-
 function computeCellRects(){
   const rects = new Array(40);
   const totalSide = BOARD_SIZE - 2*CORNER;
   const steps = makeSteps(totalSide, SIDE_CELLS);
 
-  // смещение поля внутрь canvas (чтобы ценник мог "вылезать")
   const ox = OUTER_PAD;
   const oy = OUTER_PAD;
 
@@ -246,20 +227,19 @@ function computeCellRects(){
   cellRects = rects;
 }
 
+const isBottom=i=>i>=1 && i<=9;
+const isLeft=i=>i>=11 && i<=19;
+const isTop=i=>i>=21 && i<=29;
+const isRight=i=>i>=31 && i<=39;
+const isCorner=i=>i===0 || i===10 || i===20 || i===30;
+
 /* =======================
    DRAW
 ======================= */
-
-function isBottom(i){ return i>=1 && i<=9; }
-function isLeft(i){ return i>=11 && i<=19; }
-function isTop(i){ return i>=21 && i<=29; }
-function isRight(i){ return i>=31 && i<=39; }
-function isCorner(i){ return i===0 || i===10 || i===20 || i===30; }
-
 function draw(){
   ctx.clearRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
 
-  // фон холста
+  // фон
   ctx.fillStyle = "#0d0914";
   ctx.fillRect(0,0,CANVAS_SIZE,CANVAS_SIZE);
 
@@ -268,7 +248,7 @@ function draw(){
     drawCell(i, cellRects[i]);
   }
 
-  // центр (внутри поля, а не внутри всего canvas)
+  // центр (внутри поля)
   ctx.fillStyle = "#2b2b2b";
   const cx = OUTER_PAD + BOARD_SIZE*0.16;
   const cy = OUTER_PAD + BOARD_SIZE*0.16;
@@ -324,8 +304,11 @@ function drawCell(i, r){
     return;
   }
 
+  // текст/иконки
   ctx.save();
   ctx.translate(r.x + r.w/2, r.y + r.h/2);
+
+  // верх/низ — вертикально
   if(isTop(i) || isBottom(i)) ctx.rotate(-Math.PI/2);
 
   if(c.icon){
@@ -345,31 +328,33 @@ function drawCell(i, r){
   ctx.restore();
 }
 
-// ✅ ценники реально выступают (и НЕ обрезаются, потому что есть OUTER_PAD)
+/* ✅ ценники "вылезают" как на monopoly-one:
+   справа/слева чуть сильнее, как на твоём обведении */
 function drawPriceStripe(i, r, bg, text){
   const thick = 20;
-  const protrude = 12; // насколько выступает (можешь 10–14)
+  const protrudeTB = 14;
+  const protrudeLR = 18;
 
   ctx.save();
   ctx.fillStyle = bg;
 
   if(isTop(i)){
-    ctx.fillRect(r.x, r.y - protrude, r.w, thick + protrude);
+    ctx.fillRect(r.x, r.y - protrudeTB, r.w, thick + protrudeTB);
     ctx.fillStyle = "#fff";
     ctx.font = "900 12px -apple-system,system-ui,Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(text, r.x + r.w/2, r.y - protrude/2 + thick/2);
+    ctx.fillText(text, r.x + r.w/2, r.y - protrudeTB/2 + thick/2);
   } else if(isBottom(i)){
-    ctx.fillRect(r.x, r.y + r.h - thick, r.w, thick + protrude);
+    ctx.fillRect(r.x, r.y + r.h - thick, r.w, thick + protrudeTB);
     ctx.fillStyle = "#fff";
     ctx.font = "900 12px -apple-system,system-ui,Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(text, r.x + r.w/2, r.y + r.h - thick/2 + protrude/2);
+    ctx.fillText(text, r.x + r.w/2, r.y + r.h - thick/2 + protrudeTB/2);
   } else if(isLeft(i)){
-    ctx.fillRect(r.x - protrude, r.y, thick + protrude, r.h);
-    ctx.translate(r.x - protrude/2 + thick/2, r.y + r.h/2);
+    ctx.fillRect(r.x - protrudeLR, r.y, thick + protrudeLR, r.h);
+    ctx.translate(r.x - protrudeLR/2 + thick/2, r.y + r.h/2);
     ctx.rotate(-Math.PI/2);
     ctx.fillStyle = "#fff";
     ctx.font = "900 12px -apple-system,system-ui,Arial";
@@ -377,8 +362,8 @@ function drawPriceStripe(i, r, bg, text){
     ctx.textBaseline = "middle";
     ctx.fillText(text, 0, 0);
   } else if(isRight(i)){
-    ctx.fillRect(r.x + r.w - thick, r.y, thick + protrude, r.h);
-    ctx.translate(r.x + r.w - thick/2 + protrude/2, r.y + r.h/2);
+    ctx.fillRect(r.x + r.w - thick, r.y, thick + protrudeLR, r.h);
+    ctx.translate(r.x + r.w - thick/2 + protrudeLR/2, r.y + r.h/2);
     ctx.rotate(Math.PI/2);
     ctx.fillStyle = "#fff";
     ctx.font = "900 12px -apple-system,system-ui,Arial";
@@ -393,7 +378,6 @@ function drawPriceStripe(i, r, bg, text){
 /* =======================
    TOKENS (smooth)
 ======================= */
-
 const tokenState = { me:{index:0}, other:{index:5} };
 const tokenAnim  = { me:{x:0,y:0}, other:{x:0,y:0} };
 
@@ -401,14 +385,12 @@ function cellCenter(index){
   const r = cellRects[index];
   return { x: r.x + r.w/2, y: r.y + r.h/2 };
 }
-
 function initTokenPositions(){
   const a = cellCenter(tokenState.me.index);
   const b = cellCenter(tokenState.other.index);
   tokenAnim.me.x = a.x; tokenAnim.me.y = a.y;
   tokenAnim.other.x = b.x + 14; tokenAnim.other.y = b.y + 14;
 }
-
 function drawTokens(){
   drawTokenCircle(tokenAnim.me.x, tokenAnim.me.y, 9, "#5ffcff");
   drawTokenCircle(tokenAnim.other.x, tokenAnim.other.y, 9, "#ff4b6e");
@@ -423,11 +405,9 @@ function drawTokenCircle(x,y,r,color){
   ctx.strokeStyle = "rgba(0,0,0,0.35)";
   ctx.stroke();
 }
-
 function easeInOut(t){
   return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2;
 }
-
 function animateTokenTo(playerKey, target, duration=160){
   return new Promise((resolve)=>{
     const sx = tokenAnim[playerKey].x, sy = tokenAnim[playerKey].y;
@@ -446,9 +426,7 @@ function animateTokenTo(playerKey, target, duration=160){
     requestAnimationFrame(frame);
   });
 }
-
 const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
-
 async function moveTokenSmoothSteps(playerKey, steps){
   for(let s=0; s<steps; s++){
     tokenState[playerKey].index = (tokenState[playerKey].index + 1) % 40;
@@ -462,7 +440,6 @@ async function moveTokenSmoothSteps(playerKey, steps){
 /* =======================
    CHAT + DICE + ROLL
 ======================= */
-
 const chatLog = document.getElementById("chatLog");
 const chatInput = document.getElementById("chatInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -470,7 +447,6 @@ const rollBtn = document.getElementById("rollBtn");
 const diceOverlay = document.getElementById("diceOverlay");
 
 function addMsg(text, cls=""){
-  if(!chatLog) return;
   const el = document.createElement("div");
   el.className = `msg ${cls}`.trim();
   el.textContent = text;
@@ -478,56 +454,56 @@ function addMsg(text, cls=""){
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
-if(sendBtn && chatInput){
-  sendBtn.addEventListener("click", ()=>{
-    const v = (chatInput.value||"").trim();
-    if(!v) return;
-    addMsg(`dimakulik: ${v}`, "you");
-    chatInput.value = "";
-  });
-  chatInput.addEventListener("keydown",(e)=>{ if(e.key==="Enter") sendBtn.click(); });
-}
+sendBtn.addEventListener("click", ()=>{
+  const v = (chatInput.value||"").trim();
+  if(!v) return;
+  addMsg(`dimakulik: ${v}`, "you");
+  chatInput.value = "";
+});
+chatInput.addEventListener("keydown",(e)=>{ if(e.key==="Enter") sendBtn.click(); });
 
 function showDice(a,b){
-  if(!diceOverlay) return;
   const faces = ["⚀","⚁","⚂","⚃","⚄","⚅"];
   const dies = diceOverlay.querySelectorAll(".die");
-  if(dies[0]) dies[0].textContent = faces[a-1];
-  if(dies[1]) dies[1].textContent = faces[b-1];
+  dies[0].textContent = faces[a-1];
+  dies[1].textContent = faces[b-1];
   diceOverlay.classList.remove("hidden");
 }
-function hideDice(){
-  if(!diceOverlay) return;
-  diceOverlay.classList.add("hidden");
-}
+function hideDice(){ diceOverlay.classList.add("hidden"); }
 
-if(rollBtn){
-  rollBtn.addEventListener("pointerup", async (e)=>{
-    e.preventDefault();
-    e.stopPropagation();
-    if(isRolling) return;
-    isRolling = true;
+rollBtn.addEventListener("pointerup", async (e)=>{
+  e.preventDefault(); e.stopPropagation();
+  if(isRolling) return;
+  isRolling = true;
 
-    const d1 = 1 + Math.floor(Math.random()*6);
-    const d2 = 1 + Math.floor(Math.random()*6);
-    const steps = d1 + d2;
+  const d1 = 1 + Math.floor(Math.random()*6);
+  const d2 = 1 + Math.floor(Math.random()*6);
+  const steps = d1 + d2;
 
-    addMsg(`dimakulik выбрасывает: ${d1}:${d2}`, "sys");
+  addMsg(`dimakulik выбрасывает: ${d1}:${d2}`, "sys");
+  showDice(d1,d2);
+  await sleep(550);
+  hideDice();
+  await moveTokenSmoothSteps("me", steps);
 
-    showDice(d1,d2);
-    await sleep(550);
-    hideDice();
-
-    await moveTokenSmoothSteps("me", steps);
-
-    isRolling = false;
-  });
-  rollBtn.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); });
-}
+  isRolling = false;
+});
 
 /* =======================
    INIT
 ======================= */
+function onResize(){
+  setAppHeight();
+  syncCanvasCssVars();
+  fitCanvas();
+  setupHiDPICanvas();
+  computeCellRects();
+  initTokenPositions();
+  draw();
+}
+
+window.addEventListener("resize", onResize);
+window.addEventListener("orientationchange", onResize);
 
 renderPlayers();
 syncCanvasCssVars();
@@ -535,6 +511,6 @@ setupHiDPICanvas();
 computeCellRects();
 initTokenPositions();
 
-addMsg("Ценники выступают наружу (без смещения/ломания) ✅", "sys");
+addMsg("Цены выступают наружу как в monopoly-one ✅", "sys");
 
 onResize();
