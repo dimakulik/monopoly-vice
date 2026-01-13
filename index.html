@@ -22,6 +22,7 @@
       --safe-right: env(safe-area-inset-right);
     }
 
+    /* DESKTOP layout */
     .app{
       height:100%;
       display:grid;
@@ -92,7 +93,7 @@
       text-overflow:ellipsis;
     }
 
-    /* CHAT (пока просто низ) */
+    /* CHAT */
     .chatBar{
       position:absolute;
       left:50%;
@@ -111,26 +112,35 @@
     #msg{flex:1;height:34px;border:0;outline:none;background:#2f363b;color:#cfd6db;font-size:16px;}
     .icons{display:flex;gap:12px;align-items:center;color:#cfd6db;font-size:18px;}
 
-    /* MOBILE: players overlay (не уменьшают поле) */
+    /* =======================
+       MOBILE: 2 columns (players + board), NO OVERLAP
+       ======================= */
     @media (max-width: 900px){
-      .app{ grid-template-columns:1fr; }
+      .app{
+        grid-template-columns:128px 1fr;
+      }
       .left{
-        position:fixed;
-        left:10px;
-        top:calc(70px + var(--safe-top));
-        width:110px;
-        padding:0;
+        position:static;
+        width:auto;
+        padding:calc(10px + var(--safe-top)) 8px calc(10px + var(--safe-bottom)) 8px;
         background:transparent;
         gap:10px;
-        z-index:50;
-        pointer-events:none;
+        overflow:hidden;
       }
-      .pcard{ width:110px; border-radius:14px; padding:10px 10px; }
+      .pcard{
+        width:100%;
+        border-radius:14px;
+        padding:10px;
+      }
       .pmoney{ font-size:16px; }
       .pname{ font-size:12px; }
       .ava{ width:44px; height:44px; margin:0 auto 6px; }
-      .stage{ padding:calc(8px + var(--safe-top)) 8px calc(8px + var(--safe-bottom)) 8px; }
-      .chatBar{ width:86%; }
+
+      .stage{
+        padding:calc(10px + var(--safe-top)) 10px calc(10px + var(--safe-bottom)) 10px;
+        justify-content:center;
+      }
+      .chatBar{ width:88%; }
     }
   </style>
 </head>
@@ -211,11 +221,11 @@ ${extra}`.trim();
       const isMobile = v.w <= 900;
 
       if(isMobile){
-        // iPhone Telegram: делаем максимально крупно
-        const side = Math.floor(Math.min(v.w * 0.94, v.h * 0.78));
-        return Math.max(320, side);
+        // на мобилке: место под игроков уже есть (128px), берем ширину mid
+        const midWidth = document.querySelector(".mid").getBoundingClientRect().width;
+        const side = Math.floor(Math.min(midWidth * 0.98, v.h * 0.82));
+        return Math.max(280, side);
       }else{
-        // ПК: учитываем левую колонку
         const side = Math.floor(Math.min((v.w - 320) * 0.92, v.h * 0.92, 920));
         return Math.max(520, side);
       }
@@ -237,21 +247,17 @@ ${extra}`.trim();
       const side = wrap.getBoundingClientRect().width;
       ctx.clearRect(0,0,side,side);
 
-      // фон
       ctx.fillStyle = "#0f0f12";
       ctx.fillRect(0,0,side,side);
 
-      // рамка
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 2;
       ctx.strokeRect(1,1,side-2,side-2);
 
-      // серый центр (как чат зона)
       ctx.fillStyle = "#3a4248";
       const pad = side * 0.18;
       ctx.fillRect(pad,pad,side-2*pad,side-2*pad);
 
-      // сетка (проверка что реально рисуем)
       ctx.strokeStyle = "rgba(255,255,255,0.15)";
       ctx.lineWidth = 1;
       const step = side/10;
@@ -260,7 +266,6 @@ ${extra}`.trim();
         ctx.beginPath(); ctx.moveTo(0,i*step); ctx.lineTo(side,i*step); ctx.stroke();
       }
 
-      // подпись
       ctx.fillStyle="#fff";
       ctx.font="800 18px system-ui";
       ctx.fillText("CANVAS OK", 14, 26);
@@ -277,7 +282,6 @@ ${extra}`.trim();
       }
     }
 
-    // Telegram iOS любит поздний layout — перерендерим несколько раз
     function renderHard(){
       render("renderHard()");
       setTimeout(()=>render("t+80ms"), 80);
