@@ -1,153 +1,242 @@
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-  background:#1f2428;
-  color:#fff;
-  overflow:hidden;
+/* ====== TELEGRAM MOBILE SAFE BASE ====== */
+* { box-sizing: border-box; }
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #2b353d; /* как на твоих скринах */
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
-.app{
-  height:100%;
-  display:grid;
-  grid-template-columns: 320px 1fr;
+/* safe-area */
+:root{
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  --gap: 10px;
+  --players-w: 84px;     /* левая колонка как на скрине */
+  --actions-w: 54px;     /* правая колонка кнопок */
+  --board-size: 360px;   /* JS обновит под экран */
 }
 
-.left{
-  background:#1b2024;
-  padding:18px 14px;
-  display:flex;
-  flex-direction:column;
-  gap:18px;
+/* ====== LAYOUT ====== */
+#app{
+  width: 100%;
+  height: 100%;
+  padding: calc(var(--safe-top) + 10px) calc(var(--safe-right) + 10px)
+           calc(var(--safe-bottom) + 10px) calc(var(--safe-left) + 10px);
+  display: flex;
+  gap: var(--gap);
+  align-items: stretch;
 }
 
-.pcard{
-  background:#20262b;
-  border-radius:0;
-  padding:16px 16px 14px;
-  position:relative;
-  box-shadow:none;
-  border:0;
-}
-.pcard.big{ padding:18px 16px 16px; }
-.pcard.red{ background:#e45656; }
-.pcard .lvl{
-  position:absolute;
-  left:14px; top:14px;
-  width:42px; height:42px;
-  border-radius:50%;
-  display:flex; align-items:center; justify-content:center;
-  background:rgba(0,0,0,0.25);
-  font-weight:800;
-}
-.ava{
-  width:72px; height:72px;
-  border-radius:50%;
-  background:#444;
-  margin:6px auto 10px;
-}
-.ava.ring{ outline:4px solid rgba(255,255,255,0.08); }
-.ava.green{ outline-color:#33d46a; }
-.ava.blue{ outline-color:#3aa7ff; }
-.ava.purple{ outline-color:#b17cff; }
-
-.pname{
-  text-align:center;
-  font-weight:800;
-  margin-bottom:6px;
-}
-.pmoney{
-  text-align:center;
-  font-size:28px;
-  font-weight:900;
-  letter-spacing:0.5px;
-}
-.pcard:not(.big) .pmoney{ font-size:22px; }
-
-.swords{
-  margin:18px auto;
-  font-size:44px;
-  opacity:.9;
+/* LEFT PLAYERS */
+.players{
+  width: var(--players-w);
+  min-width: var(--players-w);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.mid{ background:#2a3136; }
-.stage{
-  height:100%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:12px;
-}
-.boardWrap{
-  position:relative;
-  width:min(900px, calc(100vw - 360px));
-  aspect-ratio:1/1;
-  overflow:visible; /* важно */
-}
-#board{
-  width:100%;
-  height:100%;
-  display:block;
+.player-card{
+  height: 84px;
+  border-radius: 16px;
+  background: rgba(20, 26, 30, 0.55);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  grid-template-rows: 1fr 1fr;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.25);
 }
 
-/* чат как на скрине */
+.player-avatar{
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #1b2329;
+  border: 3px solid rgba(255,255,255,0.08);
+  grid-row: 1 / 3;
+}
+
+.player-name{
+  color: #e8eef3;
+  font-size: 12px;
+  line-height: 1.1;
+  opacity: 0.95;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-money{
+  color: #e8eef3;
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0.95;
+}
+
+/* CENTER */
+.center{
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.board-shell{
+  width: var(--board-size);
+  height: var(--board-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* BOARD */
+.board{
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: rgba(10, 14, 18, 0.35);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+}
+
+/* центральная пустая зона */
+.board-center{
+  position: absolute;
+  inset: 18% 18% 22% 18%; /* низ чуть больше, потому что чат */
+  background: rgba(28, 36, 42, 0.35);
+  border-radius: 12px;
+}
+
+/* ====== CELLS (логотипы вокруг) ======
+   40 клеток: 4 угла + 9 между углами на каждой стороне (итого 4*10 = 40)
+*/
+.cell{
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef3f7;
+  border: 1px solid rgba(0,0,0,0.10);
+  overflow: hidden;
+}
+
+/* логотип картинка */
+.cell img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* плашка цены как в monopoly-one */
+.price{
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 14px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+/* CHAT (внутри поля снизу по центру) */
 .chat{
-  position:absolute;
-  left:50%;
-  transform:translateX(-50%);
-  bottom:16px;
-  width:68%;
-  height:56%;
-  background:#2f363b;
-  border:0;
-  display:flex;
-  flex-direction:column;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 10px;
+  width: 78%;
+  max-width: 520px;
+  background: rgba(35, 43, 50, 0.82);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 8px 8px 10px;
+  backdrop-filter: blur(8px);
 }
-.chatLog{
-  flex:1 1 auto;
-  padding:10px 12px;
-  overflow:hidden;
-  font-size:16px;
-  line-height:1.4;
-}
-.chatBar{
-  height:52px;
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:8px 10px;
-  background:#2f363b;
-}
-.scopeBtn{
-  border:0;
-  background:#3b4146;
-  color:#fff;
-  height:34px;
-  padding:0 10px;
-  font-weight:700;
-  border-radius:4px;
-}
-#msg{
-  flex:1 1 auto;
-  height:34px;
-  border:0;
-  outline:none;
-  background:#2f363b;
-  color:#d7dde1;
-  font-size:16px;
-}
-.icons{
-  display:flex;
-  gap:12px;
-  align-items:center;
-  color:#cfd6db;
-  font-size:18px;
-}
-.ico{ opacity:.9; }
 
-@media (max-width: 900px){
-  .app{ grid-template-columns: 260px 1fr; }
-  .pmoney{ font-size:24px; }
-  .chat{ width:78%; height:58%; }
+.chat-top{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 6px 6px;
+}
+
+.chat-room{
+  color: rgba(255,255,255,0.82);
+  font-size: 12px;
+}
+
+.chat-row{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.chat input{
+  flex: 1;
+  height: 38px;
+  border-radius: 999px;
+  border: none;
+  outline: none;
+  padding: 0 14px;
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  font-size: 14px;
+}
+
+.chat-send{
+  width: 40px;
+  height: 38px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* RIGHT ACTIONS */
+.actions{
+  width: var(--actions-w);
+  min-width: var(--actions-w);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.act{
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  color: #e8eef3;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* small devices tighten */
+@media (max-width: 380px){
+  :root{
+    --players-w: 78px;
+    --actions-w: 50px;
+    --gap: 8px;
+  }
+  .player-card{ height: 78px; }
 }
