@@ -1,280 +1,233 @@
-// 1:1 поле как на втором скрине (канвас рисует клетки + вынос ценника наружу)
-
-const canvas = document.getElementById("board");
-const ctx = canvas.getContext("2d");
-
-const chatLog = document.getElementById("chatLog");
-
-function addLine(text, color="#cfd6db"){
-  const d = document.createElement("div");
-  d.textContent = text;
-  d.style.color = color;
-  chatLog.appendChild(d);
-  if(chatLog.children.length > 2) chatLog.removeChild(chatLog.firstChild);
-}
-
-const BOARD = 900;          // логический размер
-const PAD = 0;              // без лишних отступов
-const CORNER = 120;         // углы как на скрине
-const N = 9;                // клеток на сторону без углов
-
-// вынос ценника наружу
-const STRIPE = 36;          // толщина ценника
-const OUT = 18;             // насколько выступает
-
-// данные (как на скрине-референсе с брендами)
-const top = [
-  {logo:"", stripe:"#f0a", price:"600k"},
-  {logo:"CHANEL", stripe:null, price:null, rot:true},
-  {logo:"?", stripe:"#f0a", price:"600k"},
-  {logo:"BOSS", stripe:null, price:null, rot:true},
-  {logo:"", stripe:null, price:null},
-  {logo:"", stripe:"#ef4444", price:"2,000k"},
-  {logo:"adidas", stripe:"#f59e0b", price:"1,000k", rot:true},
-  {logo:"?", stripe:"#f59e0b", price:"", rot:false},
-  {logo:"PUMA", stripe:"#f59e0b", price:"1,000k", rot:true},
-  {logo:"LACOSTE", stripe:"#f59e0b", price:"1,200k", rot:true},
-];
-
-const right = [
-  {logo:"C+", stripe:"#14b8a6", price:"1,400k"},
-  {logo:"R*", stripe:"#ef4444", price:"1,500k"},
-  {logo:"friender", stripe:"#14b8a6", price:"1,400k"},
-  {logo:"bird", stripe:"#14b8a6", price:"1,600k"},
-  {logo:"AUDI", stripe:"#ef4444", price:"2,000k"},
-  {logo:"CocaCola", stripe:"#3b82f6", price:"1,800k"},
-  {logo:"?", stripe:null, price:null},
-  {logo:"pepsi", stripe:"#3b82f6", price:"1,800k"},
-  {logo:"Fanta", stripe:"#3b82f6", price:"2,000k"},
-];
-
-const bottom = [
-  {logo:"KFC", stripe:"#38bdf8", price:"2,800k", rot:true},
-  {logo:"PROVIO", stripe:"#ef4444", price:"1,500k", rot:true},
-  {logo:"", stripe:"#38bdf8", price:"2,600k"},
-  {logo:"", stripe:"#38bdf8", price:"2,600k"},
-  {logo:"Ford", stripe:"#ef4444", price:"2,000k", rot:true},
-  {logo:"BRITISH", stripe:"#22c55e", price:"2,400k", rot:true},
-  {logo:"lufthansa", stripe:"#22c55e", price:"2,200k", rot:true},
-  {logo:"?", stripe:null, price:null},
-  {logo:"American", stripe:"#22c55e", price:"2,200k", rot:true},
-];
-
-const left = [
-  {logo:"NOKIA", stripe:"#64748b", price:"4,000k"},
-  {logo:"?", stripe:null, price:null},
-  {logo:"Apple", stripe:"#64748b", price:"3,500k"},
-  {logo:"💎", stripe:null, price:null},
-  {logo:"LandRover", stripe:"#ef4444", price:"2,000k"},
-  {logo:"Novotel", stripe:"#a855f7", price:"3,200k"},
-  {logo:"?", stripe:null, price:null},
-  {logo:"Radisson", stripe:"#a855f7", price:"3,000k"},
-  {logo:"HolidayInn", stripe:"#a855f7", price:"3,000k"},
-];
-
-function resize(){
-  const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = Math.round(rect.width * dpr);
-  canvas.height = Math.round(rect.height * dpr);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  draw();
-}
-
-window.addEventListener("resize", resize);
-
-function drawCell(x,y,w,h){
-  ctx.fillStyle="#fff";
-  ctx.fillRect(x,y,w,h);
-  ctx.strokeStyle="#111";
-  ctx.lineWidth=2;
-  ctx.strokeRect(x,y,w,h);
-}
-
-function stripeTop(x,y,w,color,txt){
-  ctx.fillStyle=color;
-  ctx.fillRect(x, y-OUT, w, STRIPE+OUT);
-  ctx.fillStyle="#fff";
-  ctx.font="800 18px system-ui";
-  ctx.textAlign="center";
-  ctx.textBaseline="middle";
-  ctx.fillText(txt, x+w/2, y-OUT/2+STRIPE/2);
-}
-function stripeBottom(x,y,w,h,color,txt){
-  ctx.fillStyle=color;
-  ctx.fillRect(x, y+h-STRIPE, w, STRIPE+OUT);
-  ctx.fillStyle="#fff";
-  ctx.font="800 18px system-ui";
-  ctx.textAlign="center";
-  ctx.textBaseline="middle";
-  ctx.fillText(txt, x+w/2, y+h-STRIPE/2+OUT/2);
-}
-function stripeLeft(x,y,h,color,txt){
-  ctx.fillStyle=color;
-  ctx.fillRect(x-OUT, y, STRIPE+OUT, h);
-  ctx.save();
-  ctx.translate(x-OUT/2+STRIPE/2, y+h/2);
-  ctx.rotate(-Math.PI/2);
-  ctx.fillStyle="#fff";
-  ctx.font="800 18px system-ui";
-  ctx.textAlign="center";
-  ctx.textBaseline="middle";
-  ctx.fillText(txt, 0, 0);
-  ctx.restore();
-}
-function stripeRight(x,y,w,h,color,txt){
-  ctx.fillStyle=color;
-  ctx.fillRect(x+w-STRIPE, y, STRIPE+OUT, h);
-  ctx.save();
-  ctx.translate(x+w-STRIPE/2+OUT/2, y+h/2);
-  ctx.rotate(Math.PI/2);
-  ctx.fillStyle="#fff";
-  ctx.font="800 18px system-ui";
-  ctx.textAlign="center";
-  ctx.textBaseline="middle";
-  ctx.fillText(txt, 0, 0);
-  ctx.restore();
-}
-
-function textInCell(x,y,w,h,label,rot=false){
-  ctx.save();
-  ctx.translate(x+w/2,y+h/2);
-  if(rot) ctx.rotate(-Math.PI/2);
-  ctx.fillStyle="#111";
-  ctx.font="900 22px system-ui";
-  ctx.textAlign="center";
-  ctx.textBaseline="middle";
-  ctx.fillText(label,0,0);
-  ctx.restore();
-}
-
-function draw(){
-  const W = canvas.getBoundingClientRect().width;
-  const H = canvas.getBoundingClientRect().height;
-  ctx.clearRect(0,0,W,H);
-
-  // внешняя рамка как на скрине
-  ctx.fillStyle="#15181b";
-  ctx.fillRect(0,0,W,H);
-
-  // рабочая область поля
-  const bx = 70;
-  const by = 40;
-  const bw = Math.min(W-120, H-80);
-  const bh = bw;
-
-  // фон внутри
-  ctx.fillStyle="#0f0f12";
-  ctx.fillRect(bx,by,bw,bh);
-
-  // сетка
-  const side = bw;
-  const inner = side - 2*CORNER;
-  const step = inner / N;
-
-  // углы
-  // TL (rocket circle)
-  drawCell(bx,by,CORNER,CORNER);
-  ctx.save();
-  ctx.translate(bx+CORNER/2, by+CORNER/2);
-  ctx.fillStyle="#111";
-  ctx.font="900 44px system-ui";
-  ctx.textAlign="center";
-  ctx.textBaseline="middle";
-  ctx.fillText("🚀",0,-10);
-  ctx.font="900 14px system-ui";
-  ctx.fillText("START",0,38);
-  ctx.restore();
-
-  // TR (donut corner)
-  drawCell(bx+side-CORNER,by,CORNER,CORNER);
-  ctx.save();
-  ctx.translate(bx+side-CORNER/2, by+CORNER/2);
-  ctx.fillStyle="#111";
-  ctx.font="900 44px system-ui";
-  ctx.textAlign="center";
-  ctx.textBaseline="middle";
-  ctx.fillText("🍩",0,-10);
-  ctx.font="900 14px system-ui";
-  ctx.fillText("GO TO",0,38);
-  ctx.restore();
-
-  // BR (jackpot)
-  drawCell(bx+side-CORNER,by+side-CORNER,CORNER,CORNER);
-  ctx.save();
-  ctx.translate(bx+side-CORNER/2, by+side-CORNER/2);
-  ctx.fillStyle="#111";
-  ctx.font="900 44px system-ui";
-  ctx.textAlign="center";
-  ctx.textBaseline="middle";
-  ctx.fillText("🎰",0,-10);
-  ctx.font="900 14px system-ui";
-  ctx.fillText("JACKPOT",0,38);
-  ctx.restore();
-
-  // BL (jail)
-  drawCell(bx,by+side-CORNER,CORNER,CORNER);
-  ctx.save();
-  ctx.translate(bx+CORNER/2, by+side-CORNER/2);
-  ctx.fillStyle="#111";
-  ctx.font="900 44px system-ui";
-  ctx.textAlign="center";
-  ctx.textBaseline="middle";
-  ctx.fillText("👮",0,-10);
-  ctx.font="900 14px system-ui";
-  ctx.fillText("IN JAIL",0,38);
-  ctx.restore();
-
-  // TOP row (между углами)
-  for(let i=0;i<N;i++){
-    const x = bx+CORNER + i*step;
-    const y = by;
-    drawCell(x,y,step,CORNER);
-    const d = top[i+1] || {logo:"",stripe:null,price:null};
-    if(d.stripe && d.price) stripeTop(x,y,step,d.stripe,d.price);
-    if(d.logo) textInCell(x,y,step,CORNER,d.logo, true);
+/* ====== Telegram Mini App safe sizing + board build ====== */
+(function () {
+  // Telegram WebApp (если открыто внутри ТГ)
+  const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+  if (tg) {
+    try {
+      tg.expand();
+      tg.setBackgroundColor("#2b353d");
+      tg.setHeaderColor("#2b353d");
+    } catch (_) {}
   }
 
-  // RIGHT col
-  for(let i=0;i<N;i++){
-    const x = bx+side-CORNER;
-    const y = by+CORNER + i*step;
-    drawCell(x,y,CORNER,step);
-    const d = right[i] || {logo:"",stripe:null,price:null};
-    if(d.stripe && d.price) stripeRight(x,y,CORNER,step,d.stripe,d.price);
-    if(d.logo) textInCell(x,y,CORNER,step,d.logo,false);
+  const app = document.getElementById("app");
+  const board = document.getElementById("board");
+  const playersEl = document.getElementById("players");
+
+  // ===== demo players (потом заменишь на реальные) =====
+  const players = [
+    { name: "pehi44", money: "17,500k", color: "#ff5b5b" },
+    { name: "dimakulik", money: "17,500k", color: "#34d399" },
+    { name: "Sanich303", money: "17,500k", color: "#60a5fa" },
+  ];
+
+  function renderPlayers() {
+    playersEl.innerHTML = "";
+    players.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "player-card";
+      const av = document.createElement("div");
+      av.className = "player-avatar";
+      av.style.borderColor = p.color;
+
+      const name = document.createElement("div");
+      name.className = "player-name";
+      name.textContent = p.name;
+
+      const money = document.createElement("div");
+      money.className = "player-money";
+      money.textContent = `$ ${p.money}`;
+
+      card.appendChild(av);
+      card.appendChild(name);
+      card.appendChild(money);
+      playersEl.appendChild(card);
+    });
   }
 
-  // BOTTOM row
-  for(let i=0;i<N;i++){
-    const x = bx+side-CORNER - (i+1)*step;
-    const y = by+side-CORNER;
-    drawCell(x,y,step,CORNER);
-    const d = bottom[i] || {logo:"",stripe:null,price:null};
-    if(d.stripe && d.price) stripeBottom(x,y,step,CORNER,d.stripe,d.price);
-    if(d.logo) textInCell(x,y,step,CORNER,d.logo,true);
+  // ===== 40 cells like Monopoly One layout =====
+  // 4 corners + 9 between corners on each side
+  // Мы строим по периметру 10 на сторону (включая угол) => 40
+  const CELL_COUNT = 40;
+
+  // Поставь сюда свои картинки (потом заменишь на реальные URL или локальные файлы)
+  const logos = [
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%23ffffff'/><text x='50%25' y='55%25' font-size='42' text-anchor='middle' fill='%23000'>GO</text></svg>",
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%23ffffff'/><text x='50%25' y='55%25' font-size='32' text-anchor='middle' fill='%23000'>NOKIA</text></svg>",
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%23ffffff'/><text x='50%25' y='55%25' font-size='34' text-anchor='middle' fill='%23000'>BOSS</text></svg>",
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%23ffffff'/><text x='50%25' y='55%25' font-size='32' text-anchor='middle' fill='%23000'>APPLE</text></svg>",
+    "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><rect width='200' height='200' fill='%23ffffff'/><text x='50%25' y='55%25' font-size='30' text-anchor='middle' fill='%23000'>ADIDAS</text></svg>",
+  ];
+
+  const prices = [
+    "200k","400k","600k","800k","1,000k","1,200k","1,500k","2,000k","2,200k","2,400k","2,600k","3,000k"
+  ];
+  const priceColors = ["#f97316","#ec4899","#22c55e","#3b82f6","#a855f7","#ef4444"];
+
+  function getLogo(i) {
+    return logos[i % logos.length];
+  }
+  function getPrice(i) {
+    return prices[i % prices.length];
+  }
+  function getPriceColor(i) {
+    return priceColors[i % priceColors.length];
   }
 
-  // LEFT col
-  for(let i=0;i<N;i++){
-    const x = bx;
-    const y = by+side-CORNER - (i+1)*step;
-    drawCell(x,y,CORNER,step);
-    const d = left[i] || {logo:"",stripe:null,price:null};
-    if(d.stripe && d.price) stripeLeft(x,y,step,d.stripe,d.price);
-    if(d.logo) textInCell(x,y,CORNER,step,d.logo,false);
+  let cellDivs = [];
+
+  function buildCells() {
+    // удалить старые
+    cellDivs.forEach(el => el.remove());
+    cellDivs = [];
+
+    for (let i = 0; i < CELL_COUNT; i++) {
+      const c = document.createElement("div");
+      c.className = "cell";
+
+      const img = document.createElement("img");
+      img.src = getLogo(i);
+
+      const priceBar = document.createElement("div");
+      priceBar.className = "price";
+      priceBar.style.background = getPriceColor(i);
+      priceBar.textContent = getPrice(i);
+
+      c.appendChild(img);
+      c.appendChild(priceBar);
+
+      board.appendChild(c);
+      cellDivs.push(c);
+    }
   }
 
-  // центр (серый как на скрине)
-  const cx = bx+CORNER;
-  const cy = by+CORNER;
-  const cw = side-2*CORNER;
-  const ch = side-2*CORNER;
-  ctx.fillStyle="#2f363b";
-  ctx.fillRect(cx,cy,cw,ch);
-}
+  // ===== sizing like monopoly-one: square board fits between left & right =====
+  function updateBoardSize() {
+    // available size inside app
+    const rect = app.getBoundingClientRect();
 
-addLine("MikClever1 выбрасывает 4:5", "#ff5a5a");
-addLine("MikClever1 попадает на Lacoste и задумывается о покупке", "#ff5a5a");
+    // оставим место по высоте так, чтобы не упиралось в верх/низ
+    const maxByHeight = rect.height;
+    const maxByWidth = rect.width - parseInt(getComputedStyle(document.documentElement).getPropertyValue("--players-w")) - parseInt(getComputedStyle(document.documentElement).getPropertyValue("--actions-w")) - 20;
 
-setTimeout(resize, 0);
+    const size = Math.floor(Math.min(maxByWidth, maxByHeight));
+    document.documentElement.style.setProperty("--board-size", `${size}px`);
+
+    layoutCells(size);
+  }
+
+  // размещаем 40 клеток по периметру
+  function layoutCells(boardSize) {
+    // 10 клеток на сторону (включая угол)
+    const perSide = 10;
+
+    // ширина клетки на верх/низ (маленькие) и угол (большой)
+    // как в monopoly: углы чуть крупнее
+    const corner = Math.floor(boardSize * 0.12);         // ~12% от поля
+    const small = Math.floor((boardSize - corner * 2) / (perSide - 2)); // между углами (8 штук)
+
+    // итоговая корректировка, чтобы не было щелей
+    const track = corner + small * (perSide - 2) + corner; // должен ≈ boardSize
+
+    // helper: set rect
+    const setRect = (el, x, y, w, h) => {
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      el.style.width = `${w}px`;
+      el.style.height = `${h}px`;
+    };
+
+    // порядок клеток:
+    // 0..9 top (left->right)
+    // 10..19 right (top->bottom)
+    // 20..29 bottom (right->left)
+    // 30..39 left (bottom->top)
+    for (let i = 0; i < CELL_COUNT; i++) {
+      const el = cellDivs[i];
+
+      if (i >= 0 && i < 10) {
+        // TOP
+        const idx = i;
+        if (idx === 0) {
+          setRect(el, 0, 0, corner, corner); // top-left corner
+        } else if (idx === 9) {
+          setRect(el, boardSize - corner, 0, corner, corner); // top-right corner
+        } else {
+          const x = corner + (idx - 1) * small;
+          setRect(el, x, 0, small, corner);
+        }
+      } else if (i >= 10 && i < 20) {
+        // RIGHT
+        const idx = i - 10;
+        if (idx === 0) {
+          setRect(el, boardSize - corner, 0, corner, corner); // already top-right (overlaps) -> move slightly: we keep unique by nudging
+          // instead of overlap, shift one pixel:
+          el.style.top = "0px";
+        } else if (idx === 9) {
+          setRect(el, boardSize - corner, boardSize - corner, corner, corner); // bottom-right corner
+        } else {
+          const y = corner + (idx - 1) * small;
+          setRect(el, boardSize - corner, y, corner, small);
+        }
+      } else if (i >= 20 && i < 30) {
+        // BOTTOM (right->left)
+        const idx = i - 20;
+        if (idx === 0) {
+          setRect(el, boardSize - corner, boardSize - corner, corner, corner); // bottom-right
+        } else if (idx === 9) {
+          setRect(el, 0, boardSize - corner, corner, corner); // bottom-left
+        } else {
+          const x = boardSize - corner - idx * small;
+          setRect(el, x, boardSize - corner, small, corner);
+        }
+      } else {
+        // LEFT (bottom->top)
+        const idx = i - 30;
+        if (idx === 0) {
+          setRect(el, 0, boardSize - corner, corner, corner); // bottom-left
+        } else if (idx === 9) {
+          setRect(el, 0, 0, corner, corner); // top-left
+        } else {
+          const y = boardSize - corner - idx * small;
+          setRect(el, 0, y, corner, small);
+        }
+      }
+
+      // тонкая белая линия как в оригинале
+      el.style.borderColor = "rgba(0,0,0,0.12)";
+    }
+
+    // IMPORTANT: убираем реальные оверлап-углы (мы создали 4 угла по 2 раза в логике сторон)
+    // Поэтому делаем 4 угла только один раз:
+    // оставляем углы: 0 (TL), 9 (TR), 19 (BR), 29 (BL)
+    // а дублеры: 10(TR), 20(BR), 30(BL), 39(TL) -> скрываем
+    [10, 20, 30, 39].forEach(i => {
+      if (cellDivs[i]) cellDivs[i].style.display = "none";
+    });
+  }
+
+  // chat demo
+  const input = document.getElementById("chatInput");
+  const sendBtn = document.getElementById("sendBtn");
+  sendBtn.addEventListener("click", () => {
+    const text = (input.value || "").trim();
+    if (!text) return;
+    input.value = "";
+    if (tg) {
+      try { tg.HapticFeedback.impactOccurred("light"); } catch (_) {}
+    }
+  });
+
+  // init
+  renderPlayers();
+  buildCells();
+  updateBoardSize();
+
+  // keep stable on rotate / resize / telegram viewport changes
+  window.addEventListener("resize", () => {
+    // небольшой debounce
+    clearTimeout(window.__rsz);
+    window.__rsz = setTimeout(updateBoardSize, 50);
+  });
+
+})();
