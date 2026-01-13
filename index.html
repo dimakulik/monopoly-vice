@@ -1,308 +1,194 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>monopoly_tg</title>
-  <style>
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background:#232a2f;
-      color:#fff;
-      overflow:hidden;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>monopoly_tg</title>
 
-    :root{
-      --safe-top: env(safe-area-inset-top);
-      --safe-bottom: env(safe-area-inset-bottom);
-      --safe-left: env(safe-area-inset-left);
-      --safe-right: env(safe-area-inset-right);
-    }
-
-    /* DESKTOP layout */
-    .app{
-      height:100%;
-      display:grid;
-      grid-template-columns:320px 1fr;
-    }
-
-    /* LEFT players */
-    .left{
-      background:#1b2024;
-      padding:18px 14px;
-      display:flex;
-      flex-direction:column;
-      gap:18px;
-      overflow:hidden;
-    }
-    .pcard{
-      background:#20262b;
-      border-radius:0;
-      padding:16px;
-    }
-    .pcard.red{ background:#e45656; }
-    .ava{ width:70px; height:70px; border-radius:50%; background:#444; margin:6px auto 10px; }
-    .ring-green{ outline:4px solid #33d46a; }
-    .ring-blue{ outline:4px solid #3aa7ff; }
-    .ring-purple{ outline:4px solid #b17cff; }
-    .pname{ text-align:center; font-weight:800; margin-bottom:6px; }
-    .pmoney{ text-align:center; font-size:28px; font-weight:900; }
-
-    /* MID */
-    .mid{
-      position:relative;
-      background:#2a3136;
-      overflow:hidden;
-    }
-
-    .stage{
-      height:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:calc(12px + var(--safe-top)) 12px calc(12px + var(--safe-bottom)) 12px;
-    }
-
-    /* board holder */
-    #boardWrap{
-      position:relative;
-      width:600px;
-      height:600px;
-      background:#0f0f12;
-      box-shadow:0 0 0 2px rgba(255,255,255,0.06) inset;
-    }
-    canvas{display:block; width:100%; height:100%;}
-
-    /* HUD diagnostic */
-    #hud{
-      position:fixed;
-      left:10px;
-      bottom:10px;
-      z-index:9999;
-      background:rgba(0,0,0,0.55);
-      padding:8px 10px;
-      border-radius:10px;
-      font:600 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-      pointer-events:none;
-      white-space:pre;
-      max-width:90vw;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    /* CHAT */
-    .chatBar{
-      position:absolute;
-      left:50%;
-      transform:translateX(-50%);
-      bottom:12px;
-      width:70%;
-      height:52px;
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding:8px 10px;
-      background:#2f363b;
-      z-index:5;
-    }
-    .scopeBtn{border:0;background:#3b4146;color:#fff;height:34px;padding:0 10px;font-weight:800;border-radius:4px;}
-    #msg{flex:1;height:34px;border:0;outline:none;background:#2f363b;color:#cfd6db;font-size:16px;}
-    .icons{display:flex;gap:12px;align-items:center;color:#cfd6db;font-size:18px;}
-
-    /* =======================
-       MOBILE: 2 columns (players + board), NO OVERLAP
-       ======================= */
-@media (max-width: 900px){
-  .app{
-    grid-template-columns:128px 1fr;
-    align-items:center;                 /* центрируем по вертикали */
-  }
-
-  /* делаем колонку игроков такой же высоты как поле */
-  .left{
-    padding:calc(10px + var(--safe-top)) 8px calc(10px + var(--safe-bottom)) 8px;
-    background:transparent;
-    gap:10px;
-    overflow:auto;                      /* если игроков много — скролл внутри */
-    height:var(--board-side);           /* ВАЖНО: ограничиваем высотой поля */
-    align-self:center;
-  }
-
-  /* карточки компактнее */
-  .pcard{
-    width:100%;
-    border-radius:14px;
-    padding:10px;
-  }
-  .pmoney{ font-size:14px; line-height:1; }
-  .pname{ font-size:12px; line-height:1.1; }
-  .ava{ width:40px; height:40px; margin:0 auto 6px; }
-
-  .stage{
-    padding:calc(10px + var(--safe-top)) 10px calc(10px + var(--safe-bottom)) 10px;
-    justify-content:center;
-  }
-  .chatBar{ width:88%; }
+<style>
+:root{
+  --bg:#2c353b;
+  --panel:#1f262b;
+  --card:#232b30;
+  --text:#fff;
+  --muted:#9aa6ad;
+  --board-side:700px;
 }
 
-  </style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont}
+
+.app{
+  display:grid;
+  grid-template-columns:180px 1fr;
+  gap:16px;
+  padding:16px;
+  height:100vh;
+}
+
+/* ===== ИГРОКИ ===== */
+.left{
+  background:transparent;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  overflow:auto;
+  height:var(--board-side); /* КЛЮЧ: игроки = высоте поля */
+}
+
+.player{
+  background:var(--card);
+  border-radius:16px;
+  padding:12px;
+  text-align:center;
+}
+
+.player.red{background:#e45858}
+.avatar{
+  width:48px;height:48px;
+  border-radius:50%;
+  background:#444;
+  margin:0 auto 8px;
+}
+.name{font-size:14px;font-weight:600}
+.money{font-size:18px;font-weight:700}
+
+/* ===== СЦЕНА ===== */
+.stage{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.wrap{
+  position:relative;
+  width:var(--board-side);
+  height:var(--board-side);
+  background:#000;
+  border-radius:12px;
+  box-shadow:0 0 0 2px #fff inset;
+}
+
+canvas{
+  width:100%;
+  height:100%;
+  display:block;
+}
+
+/* ===== ЧАТ ===== */
+.chat{
+  position:absolute;
+  bottom:16px;
+  left:50%;
+  transform:translateX(-50%);
+  width:80%;
+  background:#313a40;
+  border-radius:12px;
+  padding:10px;
+  color:var(--muted);
+  font-size:14px;
+}
+
+/* ===== МОБИЛКА ===== */
+@media (max-width:900px){
+  .app{
+    grid-template-columns:120px 1fr;
+    align-items:center;
+  }
+  .left{
+    height:var(--board-side);
+    gap:10px;
+  }
+  .avatar{width:36px;height:36px}
+  .money{font-size:14px}
+}
+</style>
 </head>
 
 <body>
-  <div class="app">
-    <aside class="left">
-      <div class="pcard red">
-        <div class="ava"></div>
-        <div class="pname">Shnurok</div>
-        <div class="pmoney">$ 15,000k</div>
-      </div>
+<div class="app">
 
-      <div class="pcard">
-        <div class="ava ring-green"></div>
-        <div class="pname">dimakulik</div>
-        <div class="pmoney">$ 15,000k</div>
-      </div>
-
-      <div class="pcard">
-        <div class="ava ring-blue"></div>
-        <div class="pname">⭐ Дима</div>
-        <div class="pmoney">$ 15,000k</div>
-      </div>
-
-      <div class="pcard">
-        <div class="ava ring-purple"></div>
-        <div class="pname">⭐ Morpheus</div>
-        <div class="pmoney">$ 15,000k</div>
-      </div>
-    </aside>
-
-    <main class="mid">
-      <div class="stage">
-        <div id="boardWrap">
-          <canvas id="board"></canvas>
-          <div class="chatBar">
-            <button class="scopeBtn">Всем</button>
-            <input id="msg" placeholder="Введите сообщение" />
-            <div class="icons"><span>😺</span><span>⛶</span><span>⌃</span></div>
-          </div>
-        </div>
-      </div>
-    </main>
+  <!-- ИГРОКИ -->
+  <div class="left">
+    <div class="player red">
+      <div class="avatar"></div>
+      <div class="name">Shnurok</div>
+      <div class="money">$ 15,000k</div>
+    </div>
+    <div class="player">
+      <div class="avatar" style="outline:3px solid #3cff6a"></div>
+      <div class="name">dimakulik</div>
+      <div class="money">$ 15,000k</div>
+    </div>
+    <div class="player">
+      <div class="avatar" style="outline:3px solid #4aa3ff"></div>
+      <div class="name">⭐ Дима</div>
+      <div class="money">$ 15,000k</div>
+    </div>
+    <div class="player">
+      <div class="avatar" style="outline:3px solid #b17bff"></div>
+      <div class="name">⭐ Morpheus</div>
+      <div class="money">$ 15,000k</div>
+    </div>
   </div>
 
-  <div id="hud">HUD</div>
+  <!-- ПОЛЕ -->
+  <div class="stage">
+    <div class="wrap" id="wrap">
+      <canvas id="board"></canvas>
+      <div class="chat">CANVAS OK<br>Введите сообщение</div>
+    </div>
+  </div>
 
-  <script>
-    const hud = document.getElementById("hud");
-    const wrap = document.getElementById("boardWrap");
-    const canvas = document.getElementById("board");
-    const ctx = canvas.getContext("2d");
+</div>
 
-    function vp(){
-      const vv = window.visualViewport;
-      const cw = document.documentElement.clientWidth;
-      const ch = document.documentElement.clientHeight;
-      return {
-        w: Math.round(vv ? vv.width : cw),
-        h: Math.round(vv ? vv.height : ch),
-        scale: vv ? vv.scale : 1
-      };
-    }
+<script>
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+const wrap = document.getElementById("wrap");
 
-    function setHud(extra=""){
-      const v = vp();
-      const dpr = window.devicePixelRatio || 1;
-      hud.textContent =
-`vw/vh: ${v.w}×${v.h}  vv.scale:${v.scale}
-wrap: ${Math.round(wrap.getBoundingClientRect().width)}×${Math.round(wrap.getBoundingClientRect().height)}
-canvas: ${canvas.width}×${canvas.height} (css ${Math.round(canvas.getBoundingClientRect().width)}×${Math.round(canvas.getBoundingClientRect().height)}) dpr:${dpr}
-${extra}`.trim();
-    }
+function resize(){
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const side = Math.min(vw, vh) * 0.8;
 
-    function computeSide(){
-      const v = vp();
-      const isMobile = v.w <= 900;
+  document.documentElement.style.setProperty("--board-side", side + "px");
 
-      if(isMobile){
-        // на мобилке: место под игроков уже есть (128px), берем ширину mid
-        const midWidth = document.querySelector(".mid").getBoundingClientRect().width;
-        const side = Math.floor(Math.min(midWidth * 0.98, v.h * 0.82));
-        return Math.max(280, side);
-      }else{
-        const side = Math.floor(Math.min((v.w - 320) * 0.92, v.h * 0.92, 920));
-        return Math.max(520, side);
-      }
-    }
+  canvas.width = side;
+  canvas.height = side;
 
-    function resizeCanvasTo(side){
-      wrap.style.width = side + "px";
-      wrap.style.height = side + "px";
+  drawGrid();
+}
 
-      const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
-      canvas.style.width = side + "px";
-      canvas.style.height = side + "px";
-      canvas.width = Math.round(side * dpr);
-      canvas.height = Math.round(side * dpr);
-      ctx.setTransform(dpr,0,0,dpr,0,0);
-    }
+function drawGrid(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#0c0f12";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    function drawTest(){
-      const side = wrap.getBoundingClientRect().width;
-      ctx.clearRect(0,0,side,side);
+  const cells = 10;
+  const step = canvas.width / cells;
 
-      ctx.fillStyle = "#0f0f12";
-      ctx.fillRect(0,0,side,side);
+  ctx.strokeStyle="rgba(255,255,255,0.15)";
+  for(let i=0;i<=cells;i++){
+    ctx.beginPath();
+    ctx.moveTo(i*step,0);
+    ctx.lineTo(i*step,canvas.height);
+    ctx.stroke();
 
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(1,1,side-2,side-2);
+    ctx.beginPath();
+    ctx.moveTo(0,i*step);
+    ctx.lineTo(canvas.width,i*step);
+    ctx.stroke();
+  }
 
-      ctx.fillStyle = "#3a4248";
-      const pad = side * 0.18;
-      ctx.fillRect(pad,pad,side-2*pad,side-2*pad);
+  ctx.fillStyle="#fff";
+  ctx.font="16px sans-serif";
+  ctx.fillText("CANVAS OK",12,22);
+}
 
-      ctx.strokeStyle = "rgba(255,255,255,0.15)";
-      ctx.lineWidth = 1;
-      const step = side/10;
-      for(let i=1;i<10;i++){
-        ctx.beginPath(); ctx.moveTo(i*step,0); ctx.lineTo(i*step,side); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0,i*step); ctx.lineTo(side,i*step); ctx.stroke();
-      }
+window.addEventListener("resize", resize);
+resize();
+</script>
 
-      ctx.fillStyle="#fff";
-      ctx.font="800 18px system-ui";
-      ctx.fillText("CANVAS OK", 14, 26);
-    }
-
-    function render(extra=""){
-      try{
-        const side = computeSide();
-        resizeCanvasTo(side);
-        drawTest();
-        setHud(extra);
-      }catch(e){
-        setHud("ERROR: " + (e && e.message ? e.message : e));
-      }
-    }
-
-    function renderHard(){
-      render("renderHard()");
-      setTimeout(()=>render("t+80ms"), 80);
-      setTimeout(()=>render("t+220ms"), 220);
-      setTimeout(()=>render("t+520ms"), 520);
-    }
-
-    window.addEventListener("resize", renderHard);
-    window.addEventListener("orientationchange", ()=>setTimeout(renderHard, 200));
-    if(window.visualViewport){
-      window.visualViewport.addEventListener("resize", renderHard);
-      window.visualViewport.addEventListener("scroll", renderHard);
-    }
-
-    renderHard();
-  </script>
 </body>
 </html>
