@@ -343,37 +343,48 @@ function drawCell(i, r){
 }
 
 function drawPriceStripe(i, r, bg, text){
-  const thick = 20;
+  const thick = 20;      // толщина полосы
+  const protrude = 10;   // НА СКОЛЬКО ВЫСТУПАЕТ ЗА ПОЛЕ (как на скрине)
 
   ctx.save();
   ctx.fillStyle = bg;
 
+  // TOP: полоска выступает вверх
   if(isTop(i)){
-    ctx.fillRect(r.x, r.y, r.w, thick);
+    ctx.fillRect(r.x, r.y - protrude, r.w, thick + protrude);
     ctx.fillStyle = "#fff";
     ctx.font = "900 12px -apple-system,system-ui,Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(text, r.x + r.w/2, r.y + thick/2);
-  } else if(isBottom(i)){
-    ctx.fillRect(r.x, r.y + r.h - thick, r.w, thick);
+    ctx.fillText(text, r.x + r.w/2, r.y - protrude/2 + thick/2);
+  }
+
+  // BOTTOM: выступает вниз
+  else if(isBottom(i)){
+    ctx.fillRect(r.x, r.y + r.h - thick, r.w, thick + protrude);
     ctx.fillStyle = "#fff";
     ctx.font = "900 12px -apple-system,system-ui,Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(text, r.x + r.w/2, r.y + r.h - thick/2);
-  } else if(isLeft(i)){
-    ctx.fillRect(r.x, r.y, thick, r.h);
-    ctx.translate(r.x + thick/2, r.y + r.h/2);
+    ctx.fillText(text, r.x + r.w/2, r.y + r.h - thick/2 + protrude/2);
+  }
+
+  // LEFT: выступает влево
+  else if(isLeft(i)){
+    ctx.fillRect(r.x - protrude, r.y, thick + protrude, r.h);
+    ctx.translate(r.x - protrude/2 + thick/2, r.y + r.h/2);
     ctx.rotate(-Math.PI/2);
     ctx.fillStyle = "#fff";
     ctx.font = "900 12px -apple-system,system-ui,Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(text, 0, 0);
-  } else if(isRight(i)){
-    ctx.fillRect(r.x + r.w - thick, r.y, thick, r.h);
-    ctx.translate(r.x + r.w - thick/2, r.y + r.h/2);
+  }
+
+  // RIGHT: выступает вправо (то что ты обвел)
+  else if(isRight(i)){
+    ctx.fillRect(r.x + r.w - thick, r.y, thick + protrude, r.h);
+    ctx.translate(r.x + r.w - thick/2 + protrude/2, r.y + r.h/2);
     ctx.rotate(Math.PI/2);
     ctx.fillStyle = "#fff";
     ctx.font = "900 12px -apple-system,system-ui,Arial";
@@ -381,6 +392,9 @@ function drawPriceStripe(i, r, bg, text){
     ctx.textBaseline = "middle";
     ctx.fillText(text, 0, 0);
   }
+
+  ctx.restore();
+}
 
   ctx.restore();
 }
