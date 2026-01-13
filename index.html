@@ -22,7 +22,10 @@
       --safe-right: env(safe-area-inset-right, 0px);
 
       --vh: 1vh;
-      --board: 320px; /* JS sets */
+      --board: 300px;         /* JS sets */
+      --price-pad: 6px;       /* distance from board */
+      --price-th: 16px;       /* thickness of price bars */
+      --price-side: 22px;     /* width for left/right price bars */
     }
 
     #app{
@@ -47,11 +50,11 @@
     }
     .top-space{ flex: 1 1 auto; }
 
-    /* wrapper чуть больше поля, чтобы снаружи поместились ценники */
+    /* outer = board + space for prices around */
     .outer{
       position: relative;
-      width: calc(var(--board) + 70px);
-      height: calc(var(--board) + 70px);
+      width: calc(var(--board) + (var(--price-side) + var(--price-pad)) * 2);
+      height: calc(var(--board) + (var(--price-th) + var(--price-pad)) * 2);
       display:flex;
       align-items:center;
       justify-content:center;
@@ -72,7 +75,6 @@
       background: rgba(43,53,61,0.85);
     }
 
-    /* клетки = только логотип */
     .cell{
       position:absolute;
       background:#fff;
@@ -90,23 +92,38 @@
       display:block;
     }
 
-    /* ценники СНАРУЖИ поля */
+    /* price outside */
     .price-out{
       position:absolute;
       display:flex;
       align-items:center;
       justify-content:center;
       color:#fff;
-      font-size: 12px;
       font-weight: 900;
       letter-spacing: .2px;
-      border-radius: 6px;
+      border-radius: 8px;
       box-shadow: 0 8px 18px rgba(0,0,0,0.22);
       user-select:none;
       pointer-events:none;
+
+      /* IMPORTANT: make text always fit */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 6px;
+      font-size: clamp(10px, 1.8vw, 12px);
+      line-height: 1;
     }
 
-    /* CHAT внутри поля внизу центра (как на твоём рефе) */
+    /* side price vertical look like reference */
+    .price-out.side{
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      padding: 6px 0;
+      font-size: clamp(9px, 1.6vw, 11px);
+    }
+
+    /* chat inside board */
     .chat{
       position:absolute;
       left:50%;
@@ -127,6 +144,7 @@
       font-size:13px;
       padding:0 4px;
       flex:0 0 auto;
+      white-space:nowrap;
     }
     .chat input{
       flex:1 1 auto;
@@ -189,7 +207,6 @@
     const outer = document.getElementById("outer");
     const board = document.getElementById("board");
 
-    // заглушки логотипов
     const logos = [
       "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' fill='%23fff'/><text x='50%25' y='58%25' font-size='54' text-anchor='middle' fill='%23000'>GO</text></svg>",
       "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' fill='%23fff'/><text x='50%25' y='58%25' font-size='38' text-anchor='middle' fill='%23000'>NOKIA</text></svg>",
@@ -202,7 +219,7 @@
 
     const CELL_COUNT = 40;
     let cells = [];
-    let priceTags = [];
+    let tags = [];
 
     function getLogo(i){ return logos[i % logos.length]; }
     function getPrice(i){ return prices[i % prices.length]; }
@@ -210,46 +227,42 @@
 
     function clearAll(){
       cells.forEach(c=>c.remove());
-      priceTags.forEach(p=>p.remove());
-      cells = [];
-      priceTags = [];
+      tags.forEach(t=>t.remove());
+      cells=[]; tags=[];
     }
 
     function build(){
       clearAll();
-
       for (let i=0;i<CELL_COUNT;i++){
-        // cell inside board
         const el = document.createElement("div");
         el.className = "cell";
-
         const img = document.createElement("img");
         img.src = getLogo(i);
-
         el.appendChild(img);
         board.appendChild(el);
         cells.push(el);
 
-        // price outside (added to outer container)
         const pr = document.createElement("div");
         pr.className = "price-out";
         pr.style.background = getPriceColor(i);
         pr.textContent = getPrice(i);
         outer.appendChild(pr);
-        priceTags.push(pr);
+        tags.push(pr);
       }
     }
 
-    // 40 cells as: 0 TL, 1..9 top, 10 TR, 11..19 right, 20 BR, 21..29 bottom, 30 BL, 31..39 left
     function layout(size){
       const corner = Math.floor(size * 0.135);
       const step = Math.floor((size - corner*2) / 9);
 
-      // board inside outer is centered: its top-left in outer:
       const outerRect = outer.getBoundingClientRect();
       const boardRect = board.getBoundingClientRect();
       const offX = boardRect.left - outerRect.left;
       const offY = boardRect.top  - outerRect.top;
+
+      const pad = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--price-pad")) || 6;
+      const th  = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--price-th")) || 16;
+      const sideW = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--price-side")) || 22;
 
       const setCell = (idx, x,y,w,h)=>{
         const el = cells[idx];
@@ -259,64 +272,60 @@
         el.style.height = h+"px";
       };
 
-      // price tag helper: position OUTSIDE corresponding side
-      const setPrice = (idx, x,y,w,h)=>{
-        const el = priceTags[idx];
+      const setTag = (idx, x,y,w,h, clsSide=false)=>{
+        const el = tags[idx];
         el.style.left = (offX + x) + "px";
         el.style.top  = (offY + y) + "px";
         el.style.width  = w + "px";
         el.style.height = h + "px";
+        el.classList.toggle("side", clsSide);
       };
 
-      // price thickness
-      const t = 18;     // height of price tag
-      const pad = 6;    // distance from board edge
-
-      // TL corner
+      // 0 TL
       setCell(0, 0, 0, corner, corner);
-      setPrice(0, 0, -t - pad, corner, t); // above board
+      setTag(0, 0, -th - pad, corner, th, false);
 
-      // TOP 1..9
+      // 1..9 TOP
       for(let i=1;i<=9;i++){
         const x = corner+(i-1)*step;
         setCell(i, x, 0, step, corner);
-        setPrice(i, x, -t - pad, step, t); // above
+        setTag(i, x, -th - pad, step, th, false);
       }
 
-      // TR corner
+      // 10 TR
       setCell(10, size-corner, 0, corner, corner);
-      setPrice(10, size-corner, -t - pad, corner, t);
+      setTag(10, size-corner, -th - pad, corner, th, false);
 
-      // RIGHT 11..19
+      // 11..19 RIGHT (vertical)
       for(let k=11;k<=19;k++){
         const i=k-11;
         const y = corner+i*step;
         setCell(k, size-corner, y, corner, step);
-        setPrice(k, size + pad, y, t+6, step); // right side, vertical block
+        setTag(k, size + pad, y, sideW, step, true);
       }
 
-      // BR corner
+      // 20 BR
       setCell(20, size-corner, size-corner, corner, corner);
-      setPrice(20, size + pad, size-corner, t+6, corner);
+      setTag(20, size + pad, size-corner, sideW, corner, true);
 
-      // BOTTOM 21..29
+      // 21..29 BOTTOM
       for(let k=21;k<=29;k++){
         const i=k-21;
         const x = size-corner-(i+1)*step;
         setCell(k, x, size-corner, step, corner);
-        setPrice(k, x, size + pad, step, t); // below
+        setTag(k, x, size + pad, step, th, false);
       }
 
-      // BL corner
+      // 30 BL
       setCell(30, 0, size-corner, corner, corner);
-      setPrice(30, 0, size + pad, corner, t);
+      setTag(30, 0, size + pad, corner, th, false);
 
-      // LEFT 31..39
+      // 31..39 LEFT (vertical)
       for(let k=31;k<=39;k++){
         const i=k-31;
         const y = size-corner-(i+1)*step;
         setCell(k, 0, y, corner, step);
-        setPrice(k, -t - pad, y, t+6, step); // left side
+        setTag(k, -sideW - pad, y, sideW, step, true);
       }
     }
 
@@ -324,14 +333,27 @@
       const H = (tg && tg.viewportStableHeight) ? tg.viewportStableHeight : window.innerHeight;
       const W = window.innerWidth;
 
-      const maxW = W - 20;
-      const maxH = H - 140;
-      const size = Math.max(260, Math.floor(Math.min(maxW, maxH)));
+      const pad = 6;
+      const th = 16;
+      const sideW = 22;
 
-      document.documentElement.style.setProperty("--board", size + "px");
+      // ✅ board must fit WITH prices:
+      // outerW = board + 2*(sideW+pad)
+      // outerH = board + 2*(th+pad)
+      const maxOuterW = W - 20;
+      const maxOuterH = H - 140;
 
-      // после изменения размеров надо дать браузеру применить layout, потом считать rect
-      requestAnimationFrame(() => layout(size));
+      const boardMaxByW = maxOuterW - 2*(sideW+pad);
+      const boardMaxByH = maxOuterH - 2*(th+pad);
+
+      const size = Math.max(240, Math.floor(Math.min(boardMaxByW, boardMaxByH)));
+
+      document.documentElement.style.setProperty("--price-pad", pad+"px");
+      document.documentElement.style.setProperty("--price-th", th+"px");
+      document.documentElement.style.setProperty("--price-side", sideW+"px");
+      document.documentElement.style.setProperty("--board", size+"px");
+
+      requestAnimationFrame(()=>layout(size));
     }
 
     build();
