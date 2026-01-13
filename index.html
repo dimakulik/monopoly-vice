@@ -17,7 +17,7 @@
       --vh:1vh;
       --board:300px;
 
-      --gap:0px;     /* без разрыва между ценой и полем */
+      --gap:0px;     /* без зазора */
       --ph:16px;     /* высота цены сверху/снизу */
       --pw:22px;     /* ширина цены слева/справа */
       --pr:0px;      /* квадратные */
@@ -47,7 +47,7 @@
       height:var(--board);
       background:rgba(10,14,18,.28);
       overflow:hidden;
-      z-index:1; /* поле ниже ценников */
+      z-index:1;
 
       outline: var(--grid) solid var(--grid-color);
       box-shadow:
@@ -61,7 +61,7 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      z-index:2; /* клетки ниже ценников */
+      z-index:2;
       box-shadow: inset 0 0 0 var(--grid) var(--grid-color);
     }
     .cell img{
@@ -72,7 +72,6 @@
       display:block;
     }
 
-    /* ценники поверх всего */
     .price{
       position:absolute;
       display:flex;
@@ -85,7 +84,7 @@
       overflow:hidden;
       font-variant-numeric: tabular-nums;
       box-shadow:none;
-      z-index:10; /* <- фикс: чтобы снизу НЕ исчезали */
+      z-index:10;
     }
     .price span{
       display:block;
@@ -187,7 +186,6 @@
     tags.push(p);
   }
 
-  // автоподжим текста
   function fit(tag){
     if (tag.style.display === 'none') return;
     const span = tag.querySelector('span');
@@ -213,6 +211,18 @@
     Object.assign(cells[idx].style, {left:x+'px', top:y+'px', width:w+'px', height:h+'px'});
   }
 
+  // распределяем лишние пиксели по 9 клеткам (чтобы ровно стыковались)
+  function rowSegments(total){
+    const base = Math.floor(total / 9);
+    const rem  = total - base*9; // 0..8
+    const widths = Array.from({length:9}, (_,i)=> base + (i < rem ? 1 : 0));
+    const offs = [0];
+    for(let i=0;i<9;i++) offs.push(offs[i] + widths[i]);
+    return {widths, offs}; // offs длиной 10
+  }
+
+  // ВАЖНО: позиционируем цены НЕ через getBoundingClientRect (iOS глючит),
+  // а детерминированно: board в outer всегда по центру => ox=pw+gap, oy=ph+gap
   function placePrice(idx, side){
     const tag = tags[idx];
     if (tag.style.display === 'none') return;
@@ -222,15 +232,13 @@
     const ph  = parseInt(css.getPropertyValue('--ph'))  || 16;
     const pw  = parseInt(css.getPropertyValue('--pw'))  || 22;
 
+    const boardW = parseInt(getComputedStyle(board).width)  || 300;
+    const boardH = parseInt(getComputedStyle(board).height) || 300;
+
+    const ox = pw + gap; // board смещён вправо внутри outer
+    const oy = ph + gap; // board смещён вниз внутри outer
+
     const b = cellBox[idx];
-
-    const br = board.getBoundingClientRect();
-    const or = outer.getBoundingClientRect();
-    const ox = br.left - or.left;
-    const oy = br.top  - or.top;
-
-    const boardW = Math.round(br.width);
-    const boardH = Math.round(br.height);
 
     let x=0,y=0,w=0,h=0, cls='';
 
@@ -243,7 +251,7 @@
     } else if (side === 'bottom'){
       cls = 'tb';
       x = b.x;
-      y = boardH + gap;
+      y = boardH + gap;      // <- гарантированно внутри outer
       w = b.w;
       h = ph;
     } else if (side === 'left'){
@@ -262,24 +270,13 @@
 
     tag.className = 'price ' + cls;
     Object.assign(tag.style, {
-      left: Math.round(ox + x) + 'px',
-      top:  Math.round(oy + y) + 'px',
-      width: Math.round(w) + 'px',
-      height: Math.round(h) + 'px'
+      left: (ox + x) + 'px',
+      top:  (oy + y) + 'px',
+      width: w + 'px',
+      height: h + 'px'
     });
 
-    // IMPORTANT: фитим после того как браузер применил размеры
     requestAnimationFrame(()=>fit(tag));
-  }
-
-  // распределяем лишние пиксели по 9 клеткам, чтобы край всегда попадал в угол
-  function rowSegments(total){
-    const base = Math.floor(total / 9);
-    const rem  = total - base*9; // 0..8
-    const widths = Array.from({length:9}, (_,i)=> base + (i < rem ? 1 : 0));
-    const offs = [0];
-    for(let i=0;i<9;i++) offs.push(offs[i] + widths[i]);
-    return {widths, offs}; // offs длиной 10
   }
 
   function layout(){
@@ -288,14 +285,14 @@
     const corner = Math.round(size * 0.135);
     const inner = size - corner*2;
 
-    const seg = rowSegments(inner); // 9 сегментов
+    const seg = rowSegments(inner);
     const W = seg.widths;
-    const O = seg.offs; // 0..9
+    const O = seg.offs;
 
     // corners
     placeCell(0, 0, 0, corner, corner);
 
-    // top 1..9 (идеально стык в угол)
+    // top 1..9
     for(let i=1;i<=9;i++){
       const x = corner + O[i-1];
       placeCell(i, x, 0, W[i-1], corner);
@@ -311,8 +308,8 @@
 
     // bottom 21..29
     for(let i=21;i<=29;i++){
-      const k = i-21; // 0..8
-      const x = corner + O[9-(k+1)];           // старт справа налево
+      const k = i-21;
+      const x = corner + O[9-(k+1)];
       const w = W[9-(k+1)];
       placeCell(i, x, size-corner, w, corner);
     }
@@ -320,16 +317,16 @@
 
     // left 31..39
     for(let i=31;i<=39;i++){
-      const k = i-31; // 0..8
+      const k = i-31;
       const y = corner + O[9-(k+1)];
       const h = W[9-(k+1)];
       placeCell(i, 0, y, corner, h);
     }
 
-    // prices (без углов)
-    for(let i=1;i<=9;i++)  placePrice(i,'top');
+    // prices
+    for(let i=1;i<=9;i++)   placePrice(i,'top');
     for(let i=11;i<=19;i++) placePrice(i,'right');
-    for(let i=21;i<=29;i++) placePrice(i,'bottom');
+    for(let i=21;i<=29;i++) placePrice(i,'bottom'); // <- вернулись
     for(let i=31;i<=39;i++) placePrice(i,'left');
 
     [0,10,20,30].forEach(i => tags[i].style.display = 'none');
