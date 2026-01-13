@@ -10,14 +10,25 @@
     body{
       margin:0;
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      background:#1f2428;
+      background:#232a2f;
       color:#fff;
       overflow:hidden;
     }
 
-    .app{height:100%; display:grid; grid-template-columns:320px 1fr;}
+    :root{
+      --safe-top: env(safe-area-inset-top);
+      --safe-bottom: env(safe-area-inset-bottom);
+      --safe-left: env(safe-area-inset-left);
+      --safe-right: env(safe-area-inset-right);
+    }
 
-    /* LEFT (players) */
+    .app{
+      height:100%;
+      display:grid;
+      grid-template-columns:320px 1fr;
+    }
+
+    /* LEFT players */
     .left{
       background:#1b2024;
       padding:18px 14px;
@@ -29,106 +40,97 @@
     .pcard{
       background:#20262b;
       border-radius:0;
-      padding:16px 16px 14px;
-      position:relative;
+      padding:16px;
     }
-    .pcard.big{ padding:18px 16px 16px; }
     .pcard.red{ background:#e45656; }
-    .lvl{
-      position:absolute; left:14px; top:14px;
-      width:42px; height:42px; border-radius:50%;
-      display:flex; align-items:center; justify-content:center;
-      background:rgba(0,0,0,0.25);
-      font-weight:800;
-    }
-    .ava{
-      width:72px; height:72px; border-radius:50%;
-      background:#444; margin:6px auto 10px;
-    }
-    .ava.ring{ outline:4px solid rgba(255,255,255,0.08); }
-    .ava.green{ outline-color:#33d46a; }
-    .ava.blue{ outline-color:#3aa7ff; }
-    .ava.purple{ outline-color:#b17cff; }
+    .ava{ width:70px; height:70px; border-radius:50%; background:#444; margin:6px auto 10px; }
+    .ring-green{ outline:4px solid #33d46a; }
+    .ring-blue{ outline:4px solid #3aa7ff; }
+    .ring-purple{ outline:4px solid #b17cff; }
     .pname{ text-align:center; font-weight:800; margin-bottom:6px; }
-    .pmoney{ text-align:center; font-size:28px; font-weight:900; letter-spacing:.5px; }
-    .pcard:not(.big) .pmoney{ font-size:22px; }
-    .swords{ margin:18px auto; font-size:44px; opacity:.9; }
+    .pmoney{ text-align:center; font-size:28px; font-weight:900; }
 
     /* MID */
-    .mid{ background:#2a3136; position:relative; overflow:hidden; }
+    .mid{
+      position:relative;
+      background:#2a3136;
+      overflow:hidden;
+    }
+
     .stage{
       height:100%;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding:12px;
+      padding:calc(12px + var(--safe-top)) 12px calc(12px + var(--safe-bottom)) 12px;
     }
 
-    /* boardWrap size is set by JS (VERY IMPORTANT) */
-    .boardWrap{
+    /* board holder */
+    #boardWrap{
       position:relative;
       width:600px;
       height:600px;
       background:#0f0f12;
+      box-shadow:0 0 0 2px rgba(255,255,255,0.06) inset;
     }
-    canvas{ width:100%; height:100%; display:block; }
+    canvas{display:block; width:100%; height:100%;}
 
-    /* CHAT overlay */
-    .chat{
+    /* HUD diagnostic */
+    #hud{
+      position:fixed;
+      left:10px;
+      bottom:10px;
+      z-index:9999;
+      background:rgba(0,0,0,0.55);
+      padding:8px 10px;
+      border-radius:10px;
+      font:600 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      pointer-events:none;
+      white-space:pre;
+      max-width:90vw;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    /* CHAT (пока просто низ) */
+    .chatBar{
       position:absolute;
       left:50%;
       transform:translateX(-50%);
-      bottom:16px;
-      width:68%;
-      height:56%;
-      background:#2f363b;
+      bottom:12px;
+      width:70%;
+      height:52px;
       display:flex;
-      flex-direction:column;
+      align-items:center;
+      gap:10px;
+      padding:8px 10px;
+      background:#2f363b;
       z-index:5;
     }
-    .chatLog{ flex:1 1 auto; padding:10px 12px; overflow:hidden; font-size:16px; line-height:1.4; }
-    .chatBar{
-      height:52px; display:flex; align-items:center; gap:10px;
-      padding:8px 10px; background:#2f363b;
-    }
-    .scopeBtn{
-      border:0; background:#3b4146; color:#fff;
-      height:34px; padding:0 10px;
-      font-weight:700; border-radius:4px;
-    }
-    #msg{
-      flex:1 1 auto; height:34px;
-      border:0; outline:none;
-      background:#2f363b; color:#d7dde1;
-      font-size:16px;
-    }
-    .icons{ display:flex; gap:12px; align-items:center; color:#cfd6db; font-size:18px; }
-    .ico{ opacity:.9; }
+    .scopeBtn{border:0;background:#3b4146;color:#fff;height:34px;padding:0 10px;font-weight:800;border-radius:4px;}
+    #msg{flex:1;height:34px;border:0;outline:none;background:#2f363b;color:#cfd6db;font-size:16px;}
+    .icons{display:flex;gap:12px;align-items:center;color:#cfd6db;font-size:18px;}
 
-    /* MOBILE: one column, players overlay (doesn't shrink board) */
+    /* MOBILE: players overlay (не уменьшают поле) */
     @media (max-width: 900px){
       .app{ grid-template-columns:1fr; }
       .left{
         position:fixed;
         left:10px;
-        top:88px;
-        width:100px;
+        top:calc(70px + var(--safe-top));
+        width:110px;
         padding:0;
         background:transparent;
         gap:10px;
         z-index:50;
         pointer-events:none;
       }
-      .pcard{ width:100px; border-radius:10px; padding:10px 8px; pointer-events:none; }
-      .pcard.big{ padding:10px 8px; }
-      .lvl{ display:none; }
+      .pcard{ width:110px; border-radius:14px; padding:10px 10px; }
+      .pmoney{ font-size:16px; }
+      .pname{ font-size:12px; }
       .ava{ width:44px; height:44px; margin:0 auto 6px; }
-      .pname{ font-size:12px; margin:0 0 4px; }
-      .pmoney{ font-size:14px; }
-      .swords{ display:none; }
-
-      .stage{ padding:0; }
-      .chat{ width:86%; height:55%; bottom:10px; }
+      .stage{ padding:calc(8px + var(--safe-top)) 8px calc(8px + var(--safe-bottom)) 8px; }
+      .chatBar{ width:86%; }
     }
   </style>
 </head>
@@ -136,29 +138,26 @@
 <body>
   <div class="app">
     <aside class="left">
-      <div class="pcard big red">
-        <div class="lvl">71</div>
+      <div class="pcard red">
         <div class="ava"></div>
         <div class="pname">Shnurok</div>
         <div class="pmoney">$ 15,000k</div>
       </div>
 
-      <div class="pcard big">
-        <div class="ava ring green"></div>
+      <div class="pcard">
+        <div class="ava ring-green"></div>
         <div class="pname">dimakulik</div>
         <div class="pmoney">$ 15,000k</div>
       </div>
 
-      <div class="swords">⚔️</div>
-
       <div class="pcard">
-        <div class="ava ring blue"></div>
+        <div class="ava ring-blue"></div>
         <div class="pname">⭐ Дима</div>
         <div class="pmoney">$ 15,000k</div>
       </div>
 
       <div class="pcard">
-        <div class="ava ring purple"></div>
+        <div class="ava ring-purple"></div>
         <div class="pname">⭐ Morpheus</div>
         <div class="pmoney">$ 15,000k</div>
       </div>
@@ -166,292 +165,132 @@
 
     <main class="mid">
       <div class="stage">
-        <div class="boardWrap" id="boardWrap">
+        <div id="boardWrap">
           <canvas id="board"></canvas>
-
-          <div class="chat">
-            <div class="chatLog" id="chatLog"></div>
-            <div class="chatBar">
-              <button class="scopeBtn">Всем</button>
-              <input id="msg" placeholder="Введите сообщение" />
-              <div class="icons">
-                <span class="ico">😺</span>
-                <span class="ico">⛶</span>
-                <span class="ico">⌃</span>
-              </div>
-            </div>
+          <div class="chatBar">
+            <button class="scopeBtn">Всем</button>
+            <input id="msg" placeholder="Введите сообщение" />
+            <div class="icons"><span>😺</span><span>⛶</span><span>⌃</span></div>
           </div>
-
         </div>
       </div>
     </main>
   </div>
 
+  <div id="hud">HUD</div>
+
   <script>
+    const hud = document.getElementById("hud");
+    const wrap = document.getElementById("boardWrap");
     const canvas = document.getElementById("board");
     const ctx = canvas.getContext("2d");
-    const wrap = document.getElementById("boardWrap");
-    const chatLog = document.getElementById("chatLog");
 
-    function addLine(text, color="#cfd6db"){
-      const d=document.createElement("div");
-      d.textContent=text;
-      d.style.color=color;
-      chatLog.appendChild(d);
-      if(chatLog.children.length>4) chatLog.removeChild(chatLog.firstChild);
-    }
-
-    const CORNER=120, N=9;
-    const STRIPE=36, OUT=18;
-
-    const top = [
-      {logo:"", stripe:"#f0a", price:"600k"},
-      {logo:"CHANEL", stripe:null, price:null, rot:true},
-      {logo:"?", stripe:"#f0a", price:"600k"},
-      {logo:"BOSS", stripe:null, price:null, rot:true},
-      {logo:"", stripe:null, price:null},
-      {logo:"", stripe:"#ef4444", price:"2,000k"},
-      {logo:"adidas", stripe:"#f59e0b", price:"1,000k", rot:true},
-      {logo:"?", stripe:"#f59e0b", price:"", rot:false},
-      {logo:"PUMA", stripe:"#f59e0b", price:"1,000k", rot:true},
-      {logo:"LACOSTE", stripe:"#f59e0b", price:"1,200k", rot:true},
-    ];
-    const right = [
-      {logo:"C+", stripe:"#14b8a6", price:"1,400k"},
-      {logo:"R*", stripe:"#ef4444", price:"1,500k"},
-      {logo:"friender", stripe:"#14b8a6", price:"1,400k"},
-      {logo:"bird", stripe:"#14b8a6", price:"1,600k"},
-      {logo:"AUDI", stripe:"#ef4444", price:"2,000k"},
-      {logo:"CocaCola", stripe:"#3b82f6", price:"1,800k"},
-      {logo:"?", stripe:null, price:null},
-      {logo:"pepsi", stripe:"#3b82f6", price:"1,800k"},
-      {logo:"Fanta", stripe:"#3b82f6", price:"2,000k"},
-    ];
-    const bottom = [
-      {logo:"KFC", stripe:"#38bdf8", price:"2,800k", rot:true},
-      {logo:"PROVIO", stripe:"#ef4444", price:"1,500k", rot:true},
-      {logo:"", stripe:"#38bdf8", price:"2,600k"},
-      {logo:"", stripe:"#38bdf8", price:"2,600k"},
-      {logo:"Ford", stripe:"#ef4444", price:"2,000k", rot:true},
-      {logo:"BRITISH", stripe:"#22c55e", price:"2,400k", rot:true},
-      {logo:"lufthansa", stripe:"#22c55e", price:"2,200k", rot:true},
-      {logo:"?", stripe:null, price:null},
-      {logo:"American", stripe:"#22c55e", price:"2,200k", rot:true},
-    ];
-    const left = [
-      {logo:"NOKIA", stripe:"#64748b", price:"4,000k"},
-      {logo:"?", stripe:null, price:null},
-      {logo:"Apple", stripe:"#64748b", price:"3,500k"},
-      {logo:"💎", stripe:null, price:null},
-      {logo:"LandRover", stripe:"#ef4444", price:"2,000k"},
-      {logo:"Novotel", stripe:"#a855f7", price:"3,200k"},
-      {logo:"?", stripe:null, price:null},
-      {logo:"Radisson", stripe:"#a855f7", price:"3,000k"},
-      {logo:"HolidayInn", stripe:"#a855f7", price:"3,000k"},
-    ];
-
-    function drawCell(x,y,w,h){
-      ctx.fillStyle="#fff";
-      ctx.fillRect(x,y,w,h);
-      ctx.strokeStyle="#111";
-      ctx.lineWidth=2;
-      ctx.strokeRect(x,y,w,h);
-    }
-    function textInCell(x,y,w,h,label,rot=false){
-      ctx.save();
-      ctx.translate(x+w/2,y+h/2);
-      if(rot) ctx.rotate(-Math.PI/2);
-      ctx.fillStyle="#111";
-      ctx.font="900 22px system-ui";
-      ctx.textAlign="center";
-      ctx.textBaseline="middle";
-      ctx.fillText(label,0,0);
-      ctx.restore();
-    }
-    function stripeTop(x,y,w,color,txt){
-      ctx.fillStyle=color;
-      ctx.fillRect(x, y-OUT, w, STRIPE+OUT);
-      if(!txt) return;
-      ctx.fillStyle="#fff";
-      ctx.font="800 18px system-ui";
-      ctx.textAlign="center";
-      ctx.textBaseline="middle";
-      ctx.fillText(txt, x+w/2, y-OUT/2+STRIPE/2);
-    }
-    function stripeBottom(x,y,w,h,color,txt){
-      ctx.fillStyle=color;
-      ctx.fillRect(x, y+h-STRIPE, w, STRIPE+OUT);
-      if(!txt) return;
-      ctx.fillStyle="#fff";
-      ctx.font="800 18px system-ui";
-      ctx.textAlign="center";
-      ctx.textBaseline="middle";
-      ctx.fillText(txt, x+w/2, y+h-STRIPE/2+OUT/2);
-    }
-    function stripeLeft(x,y,h,color,txt){
-      ctx.fillStyle=color;
-      ctx.fillRect(x-OUT, y, STRIPE+OUT, h);
-      if(!txt) return;
-      ctx.save();
-      ctx.translate(x-OUT/2+STRIPE/2, y+h/2);
-      ctx.rotate(-Math.PI/2);
-      ctx.fillStyle="#fff";
-      ctx.font="800 18px system-ui";
-      ctx.textAlign="center";
-      ctx.textBaseline="middle";
-      ctx.fillText(txt, 0, 0);
-      ctx.restore();
-    }
-    function stripeRight(x,y,w,h,color,txt){
-      ctx.fillStyle=color;
-      ctx.fillRect(x+w-STRIPE, y, STRIPE+OUT, h);
-      if(!txt) return;
-      ctx.save();
-      ctx.translate(x+w-STRIPE/2+OUT/2, y+h/2);
-      ctx.rotate(Math.PI/2);
-      ctx.fillStyle="#fff";
-      ctx.font="800 18px system-ui";
-      ctx.textAlign="center";
-      ctx.textBaseline="middle";
-      ctx.fillText(txt, 0, 0);
-      ctx.restore();
+    function vp(){
+      const vv = window.visualViewport;
+      const cw = document.documentElement.clientWidth;
+      const ch = document.documentElement.clientHeight;
+      return {
+        w: Math.round(vv ? vv.width : cw),
+        h: Math.round(vv ? vv.height : ch),
+        scale: vv ? vv.scale : 1
+      };
     }
 
-    function computeBoardSide(){
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const isMobile = vw <= 900;
+    function setHud(extra=""){
+      const v = vp();
+      const dpr = window.devicePixelRatio || 1;
+      hud.textContent =
+`vw/vh: ${v.w}×${v.h}  vv.scale:${v.scale}
+wrap: ${Math.round(wrap.getBoundingClientRect().width)}×${Math.round(wrap.getBoundingClientRect().height)}
+canvas: ${canvas.width}×${canvas.height} (css ${Math.round(canvas.getBoundingClientRect().width)}×${Math.round(canvas.getBoundingClientRect().height)}) dpr:${dpr}
+${extra}`.trim();
+    }
+
+    function computeSide(){
+      const v = vp();
+      const isMobile = v.w <= 900;
 
       if(isMobile){
-        // на телефоне делаем максимально крупно, но оставляем место под верхнюю панель Telegram
-        const side = Math.floor(Math.min(vw * 0.94, (vh - 90) * 0.92));
+        // iPhone Telegram: делаем максимально крупно
+        const side = Math.floor(Math.min(v.w * 0.94, v.h * 0.78));
         return Math.max(320, side);
-      } else {
-        // на ПК: доступная область = экран - левая колонка - отступы
-        const leftW = 320;
-        const pad = 24;
-        const availW = vw - leftW - pad*2;
-        const availH = vh - pad*2;
-        const side = Math.floor(Math.min(availW, availH, 900));
+      }else{
+        // ПК: учитываем левую колонку
+        const side = Math.floor(Math.min((v.w - 320) * 0.92, v.h * 0.92, 920));
         return Math.max(520, side);
       }
     }
 
-    function drawBoard(side){
-      // выставляем размер контейнера (ВАЖНО)
+    function resizeCanvasTo(side){
       wrap.style.width = side + "px";
       wrap.style.height = side + "px";
 
-      // DPR
       const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
-      canvas.width = Math.round(side * dpr);
-      canvas.height = Math.round(side * dpr);
       canvas.style.width = side + "px";
       canvas.style.height = side + "px";
+      canvas.width = Math.round(side * dpr);
+      canvas.height = Math.round(side * dpr);
       ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
 
+    function drawTest(){
+      const side = wrap.getBoundingClientRect().width;
       ctx.clearRect(0,0,side,side);
 
-      // фон поля
-      ctx.fillStyle="#0f0f12";
+      // фон
+      ctx.fillStyle = "#0f0f12";
       ctx.fillRect(0,0,side,side);
 
-      const inner = side - 2*CORNER;
-      const step = inner / N;
+      // рамка
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(1,1,side-2,side-2);
 
-      // углы
-      drawCell(0,0,CORNER,CORNER);
-      ctx.save();
-      ctx.translate(CORNER/2, CORNER/2);
-      ctx.fillStyle="#111"; ctx.font="900 44px system-ui";
-      ctx.textAlign="center"; ctx.textBaseline="middle";
-      ctx.fillText("🚀",0,-10);
-      ctx.font="900 14px system-ui"; ctx.fillText("START",0,38);
-      ctx.restore();
+      // серый центр (как чат зона)
+      ctx.fillStyle = "#3a4248";
+      const pad = side * 0.18;
+      ctx.fillRect(pad,pad,side-2*pad,side-2*pad);
 
-      drawCell(side-CORNER,0,CORNER,CORNER);
-      ctx.save();
-      ctx.translate(side-CORNER/2, CORNER/2);
-      ctx.fillStyle="#111"; ctx.font="900 44px system-ui";
-      ctx.textAlign="center"; ctx.textBaseline="middle";
-      ctx.fillText("🍩",0,-10);
-      ctx.font="900 14px system-ui"; ctx.fillText("GO TO",0,38);
-      ctx.restore();
-
-      drawCell(side-CORNER,side-CORNER,CORNER,CORNER);
-      ctx.save();
-      ctx.translate(side-CORNER/2, side-CORNER/2);
-      ctx.fillStyle="#111"; ctx.font="900 44px system-ui";
-      ctx.textAlign="center"; ctx.textBaseline="middle";
-      ctx.fillText("🎰",0,-10);
-      ctx.font="900 14px system-ui"; ctx.fillText("JACKPOT",0,38);
-      ctx.restore();
-
-      drawCell(0,side-CORNER,CORNER,CORNER);
-      ctx.save();
-      ctx.translate(CORNER/2, side-CORNER/2);
-      ctx.fillStyle="#111"; ctx.font="900 44px system-ui";
-      ctx.textAlign="center"; ctx.textBaseline="middle";
-      ctx.fillText("👮",0,-10);
-      ctx.font="900 14px system-ui"; ctx.fillText("IN JAIL",0,38);
-      ctx.restore();
-
-      // TOP
-      for(let i=0;i<N;i++){
-        const x=CORNER+i*step, y=0;
-        drawCell(x,y,step,CORNER);
-        const d=top[i+1]||{};
-        if(d.stripe) stripeTop(x,y,step,d.stripe,d.price||"");
-        if(d.logo) textInCell(x,y,step,CORNER,d.logo,true);
-      }
-      // RIGHT
-      for(let i=0;i<N;i++){
-        const x=side-CORNER, y=CORNER+i*step;
-        drawCell(x,y,CORNER,step);
-        const d=right[i]||{};
-        if(d.stripe) stripeRight(x,y,CORNER,step,d.stripe,d.price||"");
-        if(d.logo) textInCell(x,y,CORNER,step,d.logo,false);
-      }
-      // BOTTOM
-      for(let i=0;i<N;i++){
-        const x=side-CORNER-(i+1)*step, y=side-CORNER;
-        drawCell(x,y,step,CORNER);
-        const d=bottom[i]||{};
-        if(d.stripe) stripeBottom(x,y,step,CORNER,d.stripe,d.price||"");
-        if(d.logo) textInCell(x,y,step,CORNER,d.logo,true);
-      }
-      // LEFT
-      for(let i=0;i<N;i++){
-        const x=0, y=side-CORNER-(i+1)*step;
-        drawCell(x,y,CORNER,step);
-        const d=left[i]||{};
-        if(d.stripe) stripeLeft(x,y,step,d.stripe,d.price||"");
-        if(d.logo) textInCell(x,y,CORNER,step,d.logo,false);
+      // сетка (проверка что реально рисуем)
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 1;
+      const step = side/10;
+      for(let i=1;i<10;i++){
+        ctx.beginPath(); ctx.moveTo(i*step,0); ctx.lineTo(i*step,side); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,i*step); ctx.lineTo(side,i*step); ctx.stroke();
       }
 
-      // центр
-      ctx.fillStyle="#2f363b";
-      ctx.fillRect(CORNER, CORNER, side-2*CORNER, side-2*CORNER);
+      // подпись
+      ctx.fillStyle="#fff";
+      ctx.font="800 18px system-ui";
+      ctx.fillText("CANVAS OK", 14, 26);
     }
 
-    function render(){
-      const side = computeBoardSide();
-      drawBoard(side);
+    function render(extra=""){
+      try{
+        const side = computeSide();
+        resizeCanvasTo(side);
+        drawTest();
+        setHud(extra);
+      }catch(e){
+        setHud("ERROR: " + (e && e.message ? e.message : e));
+      }
     }
 
-    // Telegram iOS любит “поздний” layout — перерисуем несколько раз
+    // Telegram iOS любит поздний layout — перерендерим несколько раз
     function renderHard(){
-      render();
-      setTimeout(render, 80);
-      setTimeout(render, 200);
-      setTimeout(render, 450);
+      render("renderHard()");
+      setTimeout(()=>render("t+80ms"), 80);
+      setTimeout(()=>render("t+220ms"), 220);
+      setTimeout(()=>render("t+520ms"), 520);
     }
 
     window.addEventListener("resize", renderHard);
-    window.addEventListener("orientationchange", () => setTimeout(renderHard, 200));
-
-    addLine("MikClever1 выбрасывает 4:5", "#ff5a5a");
-    addLine("MikClever1 попадает на Lacoste и задумывается о покупке", "#ff5a5a");
+    window.addEventListener("orientationchange", ()=>setTimeout(renderHard, 200));
+    if(window.visualViewport){
+      window.visualViewport.addEventListener("resize", renderHard);
+      window.visualViewport.addEventListener("scroll", renderHard);
+    }
 
     renderHard();
   </script>
