@@ -1,221 +1,153 @@
-:root{
-  --appH: 100vh;
-
-  /* эти переменные app.js обновит сам */
-  --canvasW: 788px;
-  --canvasH: 788px;
-}
-
-*{ box-sizing:border-box; }
-html,body{ height:100%; }
+*{box-sizing:border-box}
+html,body{height:100%}
 body{
   margin:0;
-  background: radial-gradient(1200px 900px at 60% 20%, #3b0f66 0%, #13091f 55%, #090610 100%);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:#1f2428;
   color:#fff;
-  font-family:-apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif;
   overflow:hidden;
 }
 
-#app{
-  height:var(--appH);
-  display:flex;
-  gap:18px;
-  padding:18px;
+.app{
+  height:100%;
+  display:grid;
+  grid-template-columns: 320px 1fr;
 }
 
-#playersPanel{
-  width:240px;
-  flex:0 0 240px;
-  display:flex;
-  align-items:flex-start;
-}
-
-#players{
-  width:100%;
+.left{
+  background:#1b2024;
+  padding:18px 14px;
   display:flex;
   flex-direction:column;
-  gap:14px;
-}
-
-.playerCard{
-  display:flex;
-  gap:12px;
-  align-items:center;
-  padding:14px;
-  border-radius:18px;
-  background:rgba(15,12,22,0.55);
-  border:1px solid rgba(255,255,255,0.06);
-  box-shadow:0 10px 30px rgba(0,0,0,0.35);
-}
-.playerCard.active{
-  outline:2px solid rgba(102,255,204,0.45);
-}
-.avatar{
-  width:54px; height:54px;
-  border-radius:16px;
-  background: linear-gradient(135deg,#52d3ff 0%, #a855f7 60%, #ff3d6e 100%);
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.08);
-}
-.meta .name{
-  font-weight:800;
-  font-size:14px;
-  line-height:1.1;
-}
-.meta .money{
-  margin-top:6px;
-  font-weight:900;
-  color:#ffd35a;
-}
-
-#game{
-  flex:1 1 auto;
-  position:relative;
-  min-width:0;
-}
-
-/* ВАЖНО: чтобы выступающие ценники НЕ обрезались */
-#viewport{
-  position:relative;
-  width:100%;
-  height:calc(var(--appH) - 36px);
-  overflow:visible !important;
-}
-
-#canvas{
-  position:absolute;
-  left:0; top:0;
-  width:var(--canvasW);
-  height:var(--canvasH);
-  transform-origin: top left;
-  overflow:visible !important;
-  touch-action:none;
-}
-
-#boardCanvas{
-  display:block;
-  width:var(--canvasW);
-  height:var(--canvasH);
-}
-
-#debug{
-  position:absolute;
-  left:12px;
-  bottom:12px;
-  font-size:11px;
-  opacity:0.55;
-  background:rgba(0,0,0,0.35);
-  padding:6px 8px;
-  border-radius:10px;
-  pointer-events:none;
-}
-
-#uiCenter{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
-  width:min(520px, 70vw);
-  pointer-events:none; /* чтобы канвас ловил клики там где надо */
-}
-
-#turnCard{
-  pointer-events:auto;
-  background:#fff;
-  color:#111;
-  border-radius:10px;
-  padding:14px 16px;
-  box-shadow:0 18px 50px rgba(0,0,0,0.45);
-  margin-bottom:12px;
-}
-.turnTitle{ font-weight:900; font-size:18px; }
-.turnSub{ margin-top:4px; opacity:0.7; font-weight:700; font-size:12px; }
-
-#rollBtn{
-  margin-top:10px;
-  border:0;
-  border-radius:10px;
-  padding:10px 14px;
-  font-weight:900;
-  background:#29d3a6;
-  color:#062116;
-  cursor:pointer;
-}
-#rollBtn:active{ transform:scale(0.99); }
-
-#chatBox{
-  pointer-events:auto;
-  height:460px;
-  background:rgba(10,8,14,0.82);
-  border:1px solid rgba(255,255,255,0.08);
-  border-radius:14px;
-  box-shadow:0 18px 50px rgba(0,0,0,0.45);
-  overflow:hidden;
-}
-
-#chatLog{
-  height:calc(100% - 58px);
-  padding:14px;
-  overflow:auto;
-  font-size:13px;
-  line-height:1.35;
-}
-.msg{ margin:6px 0; }
-.msg.sys{ color:#ffd35a; font-weight:800; }
-.msg.you{ color:#7fffd4; font-weight:800; }
-
-#chatBar{
-  height:58px;
-  display:flex;
-  gap:10px;
-  padding:10px;
-  border-top:1px solid rgba(255,255,255,0.06);
-  background:rgba(0,0,0,0.18);
-}
-#chatInput{
-  flex:1 1 auto;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,0.08);
-  background:rgba(0,0,0,0.35);
-  padding:12px 12px;
-  color:#fff;
-  outline:none;
-}
-#sendBtn{
-  width:44px;
-  border-radius:12px;
-  border:0;
-  background:#29d3a6;
-  color:#062116;
-  font-weight:900;
-  cursor:pointer;
-}
-
-#diceOverlay{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
-  display:flex;
   gap:18px;
-  z-index:10;
-  pointer-events:none;
 }
-#diceOverlay.hidden{ display:none; }
-.die{
-  width:90px; height:90px;
-  border-radius:18px;
-  background:#fff;
-  color:#111;
+
+.pcard{
+  background:#20262b;
+  border-radius:0;
+  padding:16px 16px 14px;
+  position:relative;
+  box-shadow:none;
+  border:0;
+}
+.pcard.big{ padding:18px 16px 16px; }
+.pcard.red{ background:#e45656; }
+.pcard .lvl{
+  position:absolute;
+  left:14px; top:14px;
+  width:42px; height:42px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.25);
+  font-weight:800;
+}
+.ava{
+  width:72px; height:72px;
+  border-radius:50%;
+  background:#444;
+  margin:6px auto 10px;
+}
+.ava.ring{ outline:4px solid rgba(255,255,255,0.08); }
+.ava.green{ outline-color:#33d46a; }
+.ava.blue{ outline-color:#3aa7ff; }
+.ava.purple{ outline-color:#b17cff; }
+
+.pname{
+  text-align:center;
+  font-weight:800;
+  margin-bottom:6px;
+}
+.pmoney{
+  text-align:center;
+  font-size:28px;
+  font-weight:900;
+  letter-spacing:0.5px;
+}
+.pcard:not(.big) .pmoney{ font-size:22px; }
+
+.swords{
+  margin:18px auto;
+  font-size:44px;
+  opacity:.9;
+}
+
+.mid{ background:#2a3136; }
+.stage{
+  height:100%;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:54px;
-  box-shadow:0 22px 60px rgba(0,0,0,0.55);
+  padding:12px;
+}
+.boardWrap{
+  position:relative;
+  width:min(900px, calc(100vw - 360px));
+  aspect-ratio:1/1;
+  overflow:visible; /* важно */
+}
+#board{
+  width:100%;
+  height:100%;
+  display:block;
 }
 
-/* mobile tweaks */
+/* чат как на скрине */
+.chat{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  bottom:16px;
+  width:68%;
+  height:56%;
+  background:#2f363b;
+  border:0;
+  display:flex;
+  flex-direction:column;
+}
+.chatLog{
+  flex:1 1 auto;
+  padding:10px 12px;
+  overflow:hidden;
+  font-size:16px;
+  line-height:1.4;
+}
+.chatBar{
+  height:52px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 10px;
+  background:#2f363b;
+}
+.scopeBtn{
+  border:0;
+  background:#3b4146;
+  color:#fff;
+  height:34px;
+  padding:0 10px;
+  font-weight:700;
+  border-radius:4px;
+}
+#msg{
+  flex:1 1 auto;
+  height:34px;
+  border:0;
+  outline:none;
+  background:#2f363b;
+  color:#d7dde1;
+  font-size:16px;
+}
+.icons{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  color:#cfd6db;
+  font-size:18px;
+}
+.ico{ opacity:.9; }
+
 @media (max-width: 900px){
-  #app{ padding:12px; gap:12px; }
-  #playersPanel{ width:200px; flex-basis:200px; }
-  #uiCenter{ width:min(520px, 78vw); }
+  .app{ grid-template-columns: 260px 1fr; }
+  .pmoney{ font-size:24px; }
+  .chat{ width:78%; height:58%; }
 }
