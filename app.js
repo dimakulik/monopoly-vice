@@ -49,7 +49,7 @@ window.addEventListener("resize", onResize);
 window.addEventListener("orientationchange", onResize);
 
 /* =======================
-   DATA
+   PLAYERS UI (⭐)
 ======================= */
 
 const players = [
@@ -60,48 +60,12 @@ const players = [
   { name:"Александр",     stars:25000, active:false },
 ];
 
-/**
- * ВАЖНО:
- * - внутри мы всё равно используем индексы 0..39
- * - но отображаем “Поле 1..40”, чтобы не казалось что “40 пропала”
- */
-const cells40 = Array.from({length:40}).map((_,i)=>({
-  id:i,
-  type:"property",
-  label:`Поле ${i+1}`,   // <-- теперь 1..40
-  price: 0,
-  skinId: "default",
-}));
-
-cells40[0]  = { id:0,  type:"start", label:"START",  price:0, skinId:"start" };
-cells40[10] = { id:10, type:"jail",  label:"IN JAIL",price:0, skinId:"jail" };
-cells40[20] = { id:20, type:"free",  label:"FREE",   price:0, skinId:"free" };
-cells40[30] = { id:30, type:"goto",  label:"GO TO",  price:0, skinId:"goto" };
-
-const skins = {
-  default: { fill:"#ffffff", accent:"#111111", icon:"",  iconColor:"#111111" },
-  start:   { fill:"#ffffff", accent:"#0f7cff", icon:"▶", iconColor:"#0f7cff" },
-  jail:    { fill:"#ffffff", accent:"#ff3b5c", icon:"⛓", iconColor:"#ff3b5c" },
-  free:    { fill:"#ffffff", accent:"#22c55e", icon:"★", iconColor:"#22c55e" },
-  goto:    { fill:"#ffffff", accent:"#f59e0b", icon:"↪", iconColor:"#f59e0b" },
-};
-
-/* =======================
-   HELPERS
-======================= */
-
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
 }
 function formatNum(n){
   return (Number(n)||0).toLocaleString("ru-RU");
 }
-const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
-
-/* =======================
-   PLAYERS UI
-======================= */
-
 function renderPlayers(){
   const wrap = document.getElementById("players");
   wrap.innerHTML = "";
@@ -120,7 +84,87 @@ function renderPlayers(){
 }
 
 /* =======================
-   CANVAS
+   BOARD DATA (как на скрине)
+   ВАЖНО: индексы 0..39
+   Порядок классический:
+   0 (нижний правый угол) -> по низу налево -> вверх слева -> по верху направо -> вниз справа
+======================= */
+
+// формат цены как "2,000k"
+function formatK(n){
+  if(!n) return "";
+  const v = Math.round(n / 1000);
+  return v.toLocaleString("en-US") + "k";
+}
+
+function C(label, price, priceBg, icon=""){
+  return { label, price, priceBg, icon, skinId:"custom" };
+}
+
+// Клетки 0..39
+const cells40 = new Array(40);
+
+// УГЛЫ как на твоём скрине:
+cells40[0]  = C("JACKPOT", 0,  "", "🎰");            // bottom-right corner
+cells40[10] = C("IN JAIL", 0,  "", "👮");            // bottom-left corner
+cells40[20] = C("START",   0,  "", "🚀");            // top-left corner (ракета)
+cells40[30] = C("GO TO",   0,  "", "🍩");            // top-right corner (donut/chain)
+
+// ---- НИЗ (1..9) справа->влево от JACKPOT к IN JAIL ----
+// (примерно как на скрине: American Airlines, ?, Lufthansa, British, Ford, ... PROVIO, KFC)
+cells40[1] = C("American", 2200000, "#22c55e", "✈️");
+cells40[2] = C("CHANCE",   0,       "",       "?");
+cells40[3] = C("Lufthansa",2400000, "#22c55e", "✈️");
+cells40[4] = C("British",  2000000, "#ef4444", "✈️");
+cells40[5] = C("Ford",     2600000, "#3b82f6", "🚗");
+cells40[6] = C("Max",      2600000, "#3b82f6", "🍔");
+cells40[7] = C("Burger",   1500000, "#ef4444", "🍔");
+cells40[8] = C("PROVIO",   2800000, "#38bdf8", "🏁");
+cells40[9] = C("KFC",      1500000, "#ef4444", "🍗");
+
+// ---- ЛЕВО (11..19) снизу->вверх от IN JAIL к START ----
+// (Holiday Inn, IHG, Radisson, ?, Novotel, LandRover, Diamond, Apple, ?, Nokia)
+cells40[11] = C("Holiday", 3000000, "#a855f7", "🏨");
+cells40[12] = C("IHG",     3000000, "#a855f7", "🏨");
+cells40[13] = C("Radisson",3000000, "#a855f7", "🏨");
+cells40[14] = C("CHANCE",  0,       "",       "?");
+cells40[15] = C("Novotel", 3200000, "#8b5cf6", "🏨");
+cells40[16] = C("LandRover",2000000,"#ef4444", "🚙");
+cells40[17] = C("DIAMOND", 0,       "",       "💎");
+cells40[18] = C("Apple",   3500000, "#64748b", "");
+cells40[19] = C("CHANCE",  0,       "",       "?");
+
+// ---- ВЕРХ (21..29) слева->вправо от START к GO TO ----
+// (CHANEL 600k, ?, BOSS 600k, зелёная, Mercedes 2000k, Adidas 1000k, ?, Puma 1000k, Lacoste 1200k)
+cells40[21] = C("CHANEL",  600000,  "#f472b6", "C");
+cells40[22] = C("CHANCE",  0,       "",       "?");
+cells40[23] = C("BOSS",    600000,  "#f472b6", "B");
+cells40[24] = C("CARD",    0,       "",       "▦");
+cells40[25] = C("Mercedes",2000000, "#ef4444", "★");
+cells40[26] = C("adidas",  1000000, "#f59e0b", "▲");
+cells40[27] = C("CHANCE",  0,       "",       "?");
+cells40[28] = C("PUMA",    1000000, "#f59e0b", "🐾");
+cells40[29] = C("LACOSTE", 1200000, "#f59e0b", "🐊");
+
+// ---- ПРАВО (31..39) сверху->вниз от GO TO к JACKPOT ----
+// (refresh 1400k, Rockstar 1500k, friender 1400k, bird 1600k, Audi 2000k, Coca-Cola 1800k, ?, Pepsi 1800k, Fanta 2000k)
+cells40[31] = C("C+",      1400000, "#14b8a6", "⟳");
+cells40[32] = C("R*",      1500000, "#b45309", "★");
+cells40[33] = C("friender",1400000, "#14b8a6", "f");
+cells40[34] = C("bird",    1600000, "#10b981", "🐦");
+cells40[35] = C("AUDI",    2000000, "#ef4444", "⭕");
+cells40[36] = C("CocaCola",1800000, "#3b82f6", "🥤");
+cells40[37] = C("CALL",    0,       "",       "☎");
+cells40[38] = C("pepsi",   1800000, "#3b82f6", "🥤");
+cells40[39] = C("Fanta",   2000000, "#3b82f6", "🍊");
+
+// на всякий случай: если что-то не заполнено
+for(let i=0;i<40;i++){
+  if(!cells40[i]) cells40[i] = C(`Поле ${i+1}`, 0, "", "");
+}
+
+/* =======================
+   CANVAS GEOMETRY (без швов)
 ======================= */
 
 const BOARD_SIZE = 760;
@@ -143,24 +187,19 @@ function setupHiDPICanvas(){
   ctx.imageSmoothingEnabled = true;
 }
 
-/**
- * Делим totalSide на 9 клеток так, чтобы сумма была ровно totalSide
- */
 function makeSteps(total, n){
   const base = Math.floor(total / n);
   const rem  = total - base * n;
   const sizes = Array.from({length:n}, (_,i)=> base + (i < rem ? 1 : 0));
   const pos = [0];
   for(let i=0;i<n;i++) pos.push(pos[i] + sizes[i]);
-  return { sizes, pos }; // pos[k] = сумма первых k
+  return { sizes, pos };
 }
 
 function computeCellRects(){
   const rects = new Array(40);
-  const totalSide = BOARD_SIZE - 2*CORNER; // <-- ВОТ КЛЮЧ! между углами по стороне
-  // было неправильно: BOARD_SIZE - CORNER
-  // правильно: от CORNER до BOARD_SIZE-CORNER -> длина = BOARD_SIZE - 2*CORNER
-  // 760 - 184 = 576
+
+  const totalSide = BOARD_SIZE - 2*CORNER;
   const steps = makeSteps(totalSide, SIDE_CELLS);
 
   // corners
@@ -169,28 +208,28 @@ function computeCellRects(){
   rects[20] = {x:0, y:0, w:CORNER, h:CORNER};
   rects[30] = {x:BOARD_SIZE-CORNER, y:0, w:CORNER, h:CORNER};
 
-  // bottom (1..9) справа -> влево, строго между углами
+  // bottom 1..9 right->left between corners
   for(let k=1;k<=9;k++){
     const w = steps.sizes[k-1];
-    const x = CORNER + (totalSide - steps.pos[k]); // <-- фикс смещения и длины
+    const x = CORNER + (totalSide - steps.pos[k]);
     rects[k] = { x, y: BOARD_SIZE - CORNER, w, h: CORNER };
   }
 
-  // left (11..19) снизу -> вверх, строго между углами
+  // left 11..19 bottom->top between corners
   for(let k=1;k<=9;k++){
     const h = steps.sizes[k-1];
-    const y = CORNER + (totalSide - steps.pos[k]); // <-- фикс
+    const y = CORNER + (totalSide - steps.pos[k]);
     rects[10+k] = { x:0, y, w: CORNER, h };
   }
 
-  // top (21..29) слева -> вправо
+  // top 21..29 left->right
   for(let k=1;k<=9;k++){
     const w = steps.sizes[k-1];
     const x = CORNER + steps.pos[k-1];
     rects[20+k] = { x, y:0, w, h: CORNER };
   }
 
-  // right (31..39) сверху -> вниз
+  // right 31..39 top->bottom
   for(let k=1;k<=9;k++){
     const h = steps.sizes[k-1];
     const y = CORNER + steps.pos[k-1];
@@ -199,6 +238,16 @@ function computeCellRects(){
 
   cellRects = rects;
 }
+
+/* =======================
+   DRAW (логотипы текстом + ценники снаружи)
+======================= */
+
+function isBottom(i){ return i>=1 && i<=9; }
+function isLeft(i){ return i>=11 && i<=19; }
+function isTop(i){ return i>=21 && i<=29; }
+function isRight(i){ return i>=31 && i<=39; }
+function isCorner(i){ return i===0 || i===10 || i===20 || i===30; }
 
 function draw(){
   ctx.clearRect(0,0,BOARD_SIZE,BOARD_SIZE);
@@ -220,49 +269,140 @@ function draw(){
   ctx.lineWidth = 1;
   ctx.strokeRect(cx + 0.5, cy + 0.5, cw - 1, ch - 1);
 
+  // tokens
   drawTokens();
 }
 
 function drawCell(i, r){
   const cell = cells40[i];
-  const skin = skins[cell.skinId] || skins.default;
 
-  ctx.fillStyle = skin.fill || "#fff";
+  // white tile
+  ctx.fillStyle = "#fff";
   ctx.fillRect(r.x, r.y, r.w, r.h);
 
-  // граница внутрь
+  // inner border
   ctx.strokeStyle = "#111";
   ctx.lineWidth = 1;
   ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
 
-  // accent strip
-  ctx.fillStyle = skin.accent || "#111";
-  const strip = 10;
-  if(i === 0 || i === 10 || i === 20 || i === 30 || i <= 9 || (i >= 20 && i <= 29)){
-    ctx.fillRect(r.x, r.y, r.w, strip);
-  } else {
-    ctx.fillRect(r.x, r.y, strip, r.h);
+  // corner special icons bigger
+  if(isCorner(i)){
+    ctx.fillStyle = "#111";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "800 34px -apple-system,system-ui,Arial";
+    ctx.fillText(cell.icon || "", r.x + r.w/2, r.y + r.h/2 - 4);
+
+    ctx.font = "900 10px -apple-system,system-ui,Arial";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(cell.label || "", r.x + r.w/2, r.y + r.h - 8);
+    return;
+  }
+
+  // Price tag on OUTER side (как на скрине)
+  if(cell.price && cell.priceBg){
+    drawPriceTag(i, r, cell.priceBg, formatK(cell.price));
+  }
+
+  // Logo/Icon inside
+  drawLogo(i, r, cell);
+}
+
+function drawPriceTag(i, r, bg, text){
+  const pad = 0;
+  const thick = 20;
+
+  ctx.save();
+  ctx.fillStyle = bg;
+  ctx.fillRect(0,0,0,0);
+
+  if(isTop(i)){
+    ctx.fillStyle = bg;
+    ctx.fillRect(r.x, r.y, r.w, thick);
+    ctx.fillStyle = "#fff";
+    ctx.font = "900 12px -apple-system,system-ui,Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, r.x + r.w/2, r.y + thick/2);
+  } else if(isBottom(i)){
+    ctx.fillStyle = bg;
+    ctx.fillRect(r.x, r.y + r.h - thick, r.w, thick);
+    ctx.fillStyle = "#fff";
+    ctx.font = "900 12px -apple-system,system-ui,Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, r.x + r.w/2, r.y + r.h - thick/2);
+  } else if(isLeft(i)){
+    ctx.fillStyle = bg;
+    ctx.fillRect(r.x, r.y, thick, r.h);
+    // rotate text vertically
+    ctx.translate(r.x + thick/2, r.y + r.h/2);
+    ctx.rotate(-Math.PI/2);
+    ctx.fillStyle = "#fff";
+    ctx.font = "900 12px -apple-system,system-ui,Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, 0, 0);
+  } else if(isRight(i)){
+    ctx.fillStyle = bg;
+    ctx.fillRect(r.x + r.w - thick, r.y, thick, r.h);
+    ctx.translate(r.x + r.w - thick/2, r.y + r.h/2);
+    ctx.rotate(Math.PI/2);
+    ctx.fillStyle = "#fff";
+    ctx.font = "900 12px -apple-system,system-ui,Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, 0, 0);
+  }
+
+  ctx.restore();
+}
+
+function drawLogo(i, r, cell){
+  const icon = cell.icon || "";
+  const label = cell.label || "";
+
+  // если chance — большой "?"
+  if(label === "CHANCE"){
+    ctx.fillStyle = "#6bbf2a";
+    ctx.font = "900 44px -apple-system,system-ui,Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("?", r.x + r.w/2, r.y + r.h/2);
+    return;
+  }
+
+  // обычная клетка: иконка + лого
+  ctx.save();
+  ctx.translate(r.x + r.w/2, r.y + r.h/2);
+
+  // Поворачиваем содержимое как в Monopoly One:
+  // верх/низ — вертикально, лево/право — горизонтально
+  if(isTop(i) || isBottom(i)){
+    ctx.rotate(-Math.PI/2);
   }
 
   // icon
-  if(skin.icon){
-    ctx.fillStyle = skin.iconColor || "#111";
-    ctx.font = "bold 18px -apple-system, system-ui, Arial";
+  if(icon){
+    ctx.fillStyle = "#111";
+    ctx.font = "900 22px -apple-system,system-ui,Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(skin.icon, r.x + r.w/2, r.y + r.h/2 - 6);
+    ctx.fillText(icon, 0, -10);
   }
 
   // label
   ctx.fillStyle = "#111";
-  ctx.font = "bold 10px -apple-system, system-ui, Arial";
+  ctx.font = "900 16px -apple-system,system-ui,Arial";
   ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillText(cell.label || "", r.x + r.w/2, r.y + r.h - 6);
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, 0, 14);
+
+  ctx.restore();
 }
 
 /* =======================
-   TOKENS
+   TOKENS (плавно)
 ======================= */
 
 const tokenState = { me:{index:0}, other:{index:5} };
@@ -284,7 +424,6 @@ function drawTokens(){
   drawTokenCircle(tokenAnim.me.x, tokenAnim.me.y, 9, "#5ffcff");
   drawTokenCircle(tokenAnim.other.x, tokenAnim.other.y, 9, "#ff4b6e");
 }
-
 function drawTokenCircle(x,y,r,color){
   ctx.beginPath();
   ctx.arc(x,y,r,0,Math.PI*2);
@@ -318,6 +457,8 @@ function animateTokenTo(playerKey, target, duration=160){
     requestAnimationFrame(frame);
   });
 }
+
+const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
 
 async function moveTokenSmoothSteps(playerKey, steps){
   for(let s=0; s<steps; s++){
@@ -394,6 +535,6 @@ setupHiDPICanvas();
 computeCellRects();
 initTokenPositions();
 
-addMsg("Все клетки должны быть без зазоров ✅", "sys");
+addMsg("Поле как на скрине + START 🚀 ✅", "sys");
 
 onResize();
