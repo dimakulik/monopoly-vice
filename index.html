@@ -8,10 +8,8 @@
   <style>
     *{box-sizing:border-box}
     html,body{
-      margin:0;padding:0;
-      width:100%;height:100%;
-      background:#2b353d;
-      overflow:hidden;
+      margin:0;padding:0;width:100%;height:100%;
+      background:#2b353d;overflow:hidden;
       font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial;
     }
 
@@ -19,11 +17,17 @@
       --vh:1vh;
       --board:300px;
 
-      /* prices */
-      --gap:6px;   /* отступ от поля */
-      --ph:16px;   /* высота цен сверху/снизу (плоские как в monopoly-one) */
-      --pw:22px;   /* ширина цен слева/справа (плоские) */
-      --pr:6px;    /* радиус цен */
+      /* как в monopoly-one: ценники вплотную к полю */
+      --gap:0px;
+
+      /* плоские ценники */
+      --ph:16px;
+      --pw:22px;
+      --pr:0px; /* квадратные */
+
+      /* толщина “линии” между клетками как у поля */
+      --grid:2px;
+      --grid-color: rgba(0,0,0,.22);
     }
 
     #app{
@@ -48,17 +52,26 @@
       height:var(--board);
       background:rgba(10,14,18,.28);
       box-shadow:0 18px 50px rgba(0,0,0,.35);
+
+      /* рамка и “сеточный” вид как в monopoly-one */
+      outline: var(--grid) solid var(--grid-color);
+      outline-offset: 0;
+      box-shadow:
+        0 18px 50px rgba(0,0,0,.35),
+        inset 0 0 0 var(--grid) var(--grid-color);
       overflow:hidden;
     }
 
-    /* клетки */
+    /* клетки: без border, чтобы не было “дыр” при округлении */
     .cell{
       position:absolute;
       background:#fff;
-      border:2px solid rgba(0,0,0,.22);
       display:flex;
       align-items:center;
       justify-content:center;
+
+      /* линии между клетками */
+      box-shadow: inset 0 0 0 var(--grid) var(--grid-color);
     }
     .cell img{
       width:100%;
@@ -68,7 +81,7 @@
       display:block;
     }
 
-    /* цены */
+    /* цены: квадратные и вплотную */
     .price{
       position:absolute;
       display:flex;
@@ -79,8 +92,8 @@
       border-radius:var(--pr);
       pointer-events:none;
       overflow:hidden;
-      box-shadow:0 6px 14px rgba(0,0,0,.18);
       font-variant-numeric: tabular-nums;
+      box-shadow:none; /* без тени как у monopoly-one */
     }
     .price span{
       display:block;
@@ -143,198 +156,200 @@
     </div>
   </div>
 
-  <script>
-    const tg = window.Telegram?.WebApp;
-    if (tg) { try { tg.expand(); } catch(e){} }
+<script>
+  const tg = window.Telegram?.WebApp;
+  if (tg) { try { tg.expand(); } catch(e){} }
 
-    function setVH(){
-      const h = tg?.viewportStableHeight || window.innerHeight;
-      document.documentElement.style.setProperty('--vh', (h*0.01)+'px');
+  function setVH(){
+    const h = tg?.viewportStableHeight || window.innerHeight;
+    document.documentElement.style.setProperty('--vh', (h*0.01)+'px');
+  }
+  setVH();
+  window.addEventListener('resize', setVH);
+
+  const outer = document.getElementById('outer');
+  const board = document.getElementById('board');
+
+  const prices = ["200k","400k","600k","800k","1,000k","1,200k","1,500k","2,000k","2,200k","2,400k","2,600k","3,000k"];
+  const colors = ["#f97316","#ec4899","#22c55e","#3b82f6","#a855f7","#ef4444"];
+  const CORNERS = new Set([0,10,20,30]);
+
+  const CELL_COUNT = 40;
+  const cells = [];
+  const tags  = [];
+  const cellBox = Array.from({length:CELL_COUNT}, ()=>({x:0,y:0,w:0,h:0}));
+
+  const logoSVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">
+      <rect width="240" height="240" fill="#fff"/>
+      <text x="50%" y="58%" font-size="36" text-anchor="middle" fill="#000">GO</text>
+    </svg>`
+  );
+
+  for(let i=0;i<CELL_COUNT;i++){
+    const c = document.createElement('div');
+    c.className = 'cell';
+    const img = document.createElement('img');
+    img.src = logoSVG;
+    c.appendChild(img);
+    board.appendChild(c);
+    cells.push(c);
+
+    const p = document.createElement('div');
+    p.className = 'price';
+    p.style.background = colors[i % colors.length];
+    p.innerHTML = `<span>${prices[i % prices.length]}</span>`;
+    if (CORNERS.has(i)) p.style.display = 'none';
+    outer.appendChild(p);
+    tags.push(p);
+  }
+
+  function fit(tag){
+    if (tag.style.display === 'none') return;
+    const span = tag.querySelector('span');
+    if (!span) return;
+
+    const isTB = tag.classList.contains('tb');
+    const limit = isTB ? tag.clientWidth : tag.clientHeight;
+
+    span.style.transform = ''; // reset
+    const needed = span.scrollWidth;
+    const scale = Math.min(1, (limit - 2) / Math.max(1, needed));
+
+    if (tag.classList.contains('lr')) {
+      const rot = tag.classList.contains('right') ? 'rotate(90deg)' : 'rotate(-90deg)';
+      span.style.transform = `${rot} scale(${scale})`;
+    } else {
+      span.style.transform = `scale(${scale})`;
     }
-    setVH();
-    window.addEventListener('resize', setVH);
+  }
 
-    const outer = document.getElementById('outer');
-    const board = document.getElementById('board');
+  function placeCell(idx, x,y,w,h){
+    cellBox[idx] = {x,y,w,h};
+    Object.assign(cells[idx].style, {left:x+'px', top:y+'px', width:w+'px', height:h+'px'});
+  }
 
-    const prices = ["200k","400k","600k","800k","1,000k","1,200k","1,500k","2,000k","2,200k","2,400k","2,600k","3,000k"];
-    const colors = ["#f97316","#ec4899","#22c55e","#3b82f6","#a855f7","#ef4444"];
-    const CORNERS = new Set([0,10,20,30]);
+  function placePrice(idx, side){
+    const tag = tags[idx];
+    if (tag.style.display === 'none') return;
 
-    const CELL_COUNT = 40;
-    const cells = [];
-    const tags  = [];
-    const cellBox = Array.from({length:CELL_COUNT}, ()=>({x:0,y:0,w:0,h:0}));
+    const css = getComputedStyle(document.documentElement);
+    const gap = parseInt(css.getPropertyValue('--gap')) || 0;
+    const ph  = parseInt(css.getPropertyValue('--ph'))  || 16;
+    const pw  = parseInt(css.getPropertyValue('--pw'))  || 22;
 
-    // заглушка логотипа (потом заменишь на свои картинки)
-    const logoSVG = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-      `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">
-        <rect width="240" height="240" fill="#fff"/>
-        <text x="50%" y="58%" font-size="36" text-anchor="middle" fill="#000">GO</text>
-      </svg>`
-    );
+    const b = cellBox[idx];
 
-    // build DOM
-    for(let i=0;i<CELL_COUNT;i++){
-      const c = document.createElement('div');
-      c.className = 'cell';
-      const img = document.createElement('img');
-      img.src = logoSVG;
-      c.appendChild(img);
-      board.appendChild(c);
-      cells.push(c);
+    const br = board.getBoundingClientRect();
+    const or = outer.getBoundingClientRect();
+    const ox = br.left - or.left;
+    const oy = br.top  - or.top;
 
-      const p = document.createElement('div');
-      p.className = 'price';
-      p.style.background = colors[i % colors.length];
-      p.innerHTML = `<span>${prices[i % prices.length]}</span>`;
-      if (CORNERS.has(i)) p.style.display = 'none'; // углы без цен
-      outer.appendChild(p);
-      tags.push(p);
-    }
+    const boardW = parseInt(getComputedStyle(board).width);
+    const boardH = parseInt(getComputedStyle(board).height);
 
-    // автоподжим текста, чтобы всегда влезал
-    function fit(tag){
-      if (tag.style.display === 'none') return;
-      const span = tag.querySelector('span');
-      if (!span) return;
+    let x=0,y=0,w=0,h=0, cls='';
 
-      const isTB = tag.classList.contains('tb');
-      const limit = isTB ? tag.clientWidth : tag.clientHeight;
-
-      // убираем inline transform чтобы CSS rotation работал
-      span.style.transform = '';
-
-      // измеряем после применения CSS-rotation
-      const needed = span.scrollWidth;
-      const scale = Math.min(1, (limit - 2) / Math.max(1, needed));
-
-      if (tag.classList.contains('lr')) {
-        const rot = tag.classList.contains('right') ? 'rotate(90deg)' : 'rotate(-90deg)';
-        span.style.transform = `${rot} scale(${scale})`;
-      } else {
-        span.style.transform = `scale(${scale})`;
-      }
-    }
-
-    function placeCell(idx, x,y,w,h){
-      cellBox[idx] = {x,y,w,h};
-      Object.assign(cells[idx].style, {left:x+'px', top:y+'px', width:w+'px', height:h+'px'});
-    }
-
-    // ставим цену строго по координате клетки (это фиксит верх/низ)
-    function placePrice(idx, side){
-      const tag = tags[idx];
-      if (tag.style.display === 'none') return;
-
-      const css = getComputedStyle(document.documentElement);
-      const gap = parseInt(css.getPropertyValue('--gap')) || 6;
-      const ph  = parseInt(css.getPropertyValue('--ph'))  || 16;
-      const pw  = parseInt(css.getPropertyValue('--pw'))  || 22;
-
-      const b = cellBox[idx];
-
-      const br = board.getBoundingClientRect();
-      const or = outer.getBoundingClientRect();
-      const ox = br.left - or.left;
-      const oy = br.top  - or.top;
-
-      const boardW = parseInt(getComputedStyle(board).width);
-      const boardH = parseInt(getComputedStyle(board).height);
-
-      let x=0,y=0,w=0,h=0, cls='';
-
-      if (side === 'top'){
-        cls = 'tb';
-        x = b.x;
-        y = -ph - gap;
-        w = b.w;
-        h = ph;
-      } else if (side === 'bottom'){
-        cls = 'tb';
-        x = b.x;
-        y = boardH + gap;
-        w = b.w;
-        h = ph;
-      } else if (side === 'left'){
-        cls = 'lr left';
-        x = -pw - gap;
-        y = b.y;
-        w = pw;
-        h = b.h;
-      } else if (side === 'right'){
-        cls = 'lr right';
-        x = boardW + gap;
-        y = b.y;
-        w = pw;
-        h = b.h;
-      }
-
-      tag.className = 'price ' + cls;
-      Object.assign(tag.style, {left:(ox+x)+'px', top:(oy+y)+'px', width:w+'px', height:h+'px'});
-      fit(tag);
+    if (side === 'top'){
+      cls = 'tb';
+      x = b.x;
+      y = -ph - gap;
+      w = b.w;
+      h = ph;
+    } else if (side === 'bottom'){
+      cls = 'tb';
+      x = b.x;
+      y = boardH + gap;
+      w = b.w;
+      h = ph;
+    } else if (side === 'left'){
+      cls = 'lr left';
+      x = -pw - gap;
+      y = b.y;
+      w = pw;
+      h = b.h;
+    } else if (side === 'right'){
+      cls = 'lr right';
+      x = boardW + gap;
+      y = b.y;
+      w = pw;
+      h = b.h;
     }
 
-    function layout(){
-      const size = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--board')) || 300;
-      const corner = Math.floor(size * 0.135);
-      const step = Math.floor((size - corner*2) / 9);
+    tag.className = 'price ' + cls;
+    Object.assign(tag.style, {left:(ox+x)+'px', top:(oy+y)+'px', width:w+'px', height:h+'px'});
+    fit(tag);
+  }
 
-      // клетки
-      placeCell(0, 0, 0, corner, corner);
+  function layout(){
+    const size = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--board')) || 300;
 
-      // top 1..9 left->right
-      for(let i=1;i<=9;i++){
-        placeCell(i, corner + (i-1)*step, 0, step, corner);
-      }
-      placeCell(10, size-corner, 0, corner, corner);
+    /* ВАЖНО: делаем размеры кратными, чтобы не было “пиксельных дыр” */
+    const corner = Math.round(size * 0.135);
+    const inner = size - corner*2;
+    const step  = Math.floor(inner / 9);
+    const used  = step * 9;
+    const padFix = inner - used; // лишние пиксели, распределим по краям
+    const leftShift = Math.floor(padFix / 2);
 
-      // right 11..19 top->bottom
-      for(let i=11;i<=19;i++){
-        placeCell(i, size-corner, corner + (i-11)*step, corner, step);
-      }
-      placeCell(20, size-corner, size-corner, corner, corner);
+    // клетки
+    placeCell(0, 0, 0, corner, corner);
 
-      // bottom 21..29 right->left
-      for(let i=21;i<=29;i++){
-        placeCell(i, size-corner - (i-20)*step, size-corner, step, corner);
-      }
-      placeCell(30, 0, size-corner, corner, corner);
+    // top 1..9
+    for(let i=1;i<=9;i++){
+      const x = corner + leftShift + (i-1)*step;
+      placeCell(i, x, 0, step, corner);
+    }
+    placeCell(10, size-corner, 0, corner, corner);
 
-      // left 31..39 bottom->top
-      for(let i=31;i<=39;i++){
-        placeCell(i, 0, size-corner - (i-30)*step, corner, step);
-      }
+    // right 11..19
+    for(let i=11;i<=19;i++){
+      const y = corner + leftShift + (i-11)*step;
+      placeCell(i, size-corner, y, corner, step);
+    }
+    placeCell(20, size-corner, size-corner, corner, corner);
 
-      // цены (без углов)
-      for(let i=1;i<=9;i++) placePrice(i, 'top');
-      for(let i=11;i<=19;i++) placePrice(i, 'right');
-      for(let i=21;i<=29;i++) placePrice(i, 'bottom');
-      for(let i=31;i<=39;i++) placePrice(i, 'left');
+    // bottom 21..29
+    for(let i=21;i<=29;i++){
+      const x = size-corner - leftShift - (i-20)*step;
+      placeCell(i, x, size-corner, step, corner);
+    }
+    placeCell(30, 0, size-corner, corner, corner);
 
-      // углы скрываем жёстко
-      [0,10,20,30].forEach(i => tags[i].style.display = 'none');
+    // left 31..39
+    for(let i=31;i<=39;i++){
+      const y = size-corner - leftShift - (i-30)*step;
+      placeCell(i, 0, y, corner, step);
     }
 
-    function resize(){
-      const H = tg?.viewportStableHeight || innerHeight;
-      const W = innerWidth;
+    // цены (без углов)
+    for(let i=1;i<=9;i++)  placePrice(i, 'top');
+    for(let i=11;i<=19;i++) placePrice(i, 'right');
+    for(let i=21;i<=29;i++) placePrice(i, 'bottom');
+    for(let i=31;i<=39;i++) placePrice(i, 'left');
 
-      const gap=6, ph=16, pw=22;
-      const maxOuterW = W - 20;
-      const maxOuterH = H - 160;
+    [0,10,20,30].forEach(i => tags[i].style.display = 'none');
+  }
 
-      const boardMaxByW = maxOuterW - 2*(pw+gap);
-      const boardMaxByH = maxOuterH - 2*(ph+gap);
+  function resize(){
+    const H = tg?.viewportStableHeight || innerHeight;
+    const W = innerWidth;
 
-      const size = Math.max(240, Math.floor(Math.min(boardMaxByW, boardMaxByH)));
-      document.documentElement.style.setProperty('--board', size + 'px');
+    const gap=0, ph=16, pw=22;
+    const maxOuterW = W - 20;
+    const maxOuterH = H - 160;
 
-      requestAnimationFrame(layout);
-    }
+    const boardMaxByW = maxOuterW - 2*(pw+gap);
+    const boardMaxByH = maxOuterH - 2*(ph+gap);
 
-    resize();
-    window.addEventListener('resize', resize);
-  </script>
+    const size = Math.max(240, Math.floor(Math.min(boardMaxByW, boardMaxByH)));
+    document.documentElement.style.setProperty('--board', size + 'px');
+
+    requestAnimationFrame(layout);
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+</script>
 </body>
 </html>
