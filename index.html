@@ -1,194 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-<title>monopoly_tg</title>
-
-<style>
-:root{
-  --bg:#2c353b;
-  --panel:#1f262b;
-  --card:#232b30;
-  --text:#fff;
-  --muted:#9aa6ad;
-  --board-side:700px;
-}
-
-*{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont}
-
-.app{
-  display:grid;
-  grid-template-columns:180px 1fr;
-  gap:16px;
-  padding:16px;
-  height:100vh;
-}
-
-/* ===== ИГРОКИ ===== */
-.left{
-  background:transparent;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  overflow:auto;
-  height:var(--board-side); /* КЛЮЧ: игроки = высоте поля */
-}
-
-.player{
-  background:var(--card);
-  border-radius:16px;
-  padding:12px;
-  text-align:center;
-}
-
-.player.red{background:#e45858}
-.avatar{
-  width:48px;height:48px;
-  border-radius:50%;
-  background:#444;
-  margin:0 auto 8px;
-}
-.name{font-size:14px;font-weight:600}
-.money{font-size:18px;font-weight:700}
-
-/* ===== СЦЕНА ===== */
-.stage{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-.wrap{
-  position:relative;
-  width:var(--board-side);
-  height:var(--board-side);
-  background:#000;
-  border-radius:12px;
-  box-shadow:0 0 0 2px #fff inset;
-}
-
-canvas{
-  width:100%;
-  height:100%;
-  display:block;
-}
-
-/* ===== ЧАТ ===== */
-.chat{
-  position:absolute;
-  bottom:16px;
-  left:50%;
-  transform:translateX(-50%);
-  width:80%;
-  background:#313a40;
-  border-radius:12px;
-  padding:10px;
-  color:var(--muted);
-  font-size:14px;
-}
-
-/* ===== МОБИЛКА ===== */
-@media (max-width:900px){
-  .app{
-    grid-template-columns:120px 1fr;
-    align-items:center;
-  }
-  .left{
-    height:var(--board-side);
-    gap:10px;
-  }
-  .avatar{width:36px;height:36px}
-  .money{font-size:14px}
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>monopoly_tg</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 
 <body>
-<div class="app">
+  <div id="app">
+    <!-- LEFT: players -->
+    <aside class="players" id="players">
+      <!-- JS заполнит -->
+    </aside>
 
-  <!-- ИГРОКИ -->
-  <div class="left">
-    <div class="player red">
-      <div class="avatar"></div>
-      <div class="name">Shnurok</div>
-      <div class="money">$ 15,000k</div>
-    </div>
-    <div class="player">
-      <div class="avatar" style="outline:3px solid #3cff6a"></div>
-      <div class="name">dimakulik</div>
-      <div class="money">$ 15,000k</div>
-    </div>
-    <div class="player">
-      <div class="avatar" style="outline:3px solid #4aa3ff"></div>
-      <div class="name">⭐ Дима</div>
-      <div class="money">$ 15,000k</div>
-    </div>
-    <div class="player">
-      <div class="avatar" style="outline:3px solid #b17bff"></div>
-      <div class="name">⭐ Morpheus</div>
-      <div class="money">$ 15,000k</div>
-    </div>
+    <!-- CENTER: board area -->
+    <main class="center">
+      <div class="board-shell">
+        <div class="board" id="board">
+          <!-- клетки вокруг поля (JS) -->
+          <div class="board-center">
+            <!-- пустой центр как на скрине -->
+          </div>
+
+          <!-- чат как на скрине: внутри поля снизу по центру -->
+          <div class="chat">
+            <div class="chat-top">
+              <span class="chat-room">Всем</span>
+            </div>
+            <div class="chat-row">
+              <input id="chatInput" type="text" placeholder="Введите сообщение" />
+              <button id="sendBtn" class="chat-send" title="Отправить">➤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT: actions -->
+    <aside class="actions">
+      <button class="act"><span>⟳</span></button>
+      <button class="act"><span>R</span></button>
+      <button class="act"><span>friend</span></button>
+      <button class="act"><span>🔑</span></button>
+      <button class="act"><span>A</span></button>
+      <button class="act"><span>coca</span></button>
+      <button class="act"><span>pepsi</span></button>
+      <button class="act"><span>fanta</span></button>
+    </aside>
   </div>
 
-  <!-- ПОЛЕ -->
-  <div class="stage">
-    <div class="wrap" id="wrap">
-      <canvas id="board"></canvas>
-      <div class="chat">CANVAS OK<br>Введите сообщение</div>
-    </div>
-  </div>
-
-</div>
-
-<script>
-const canvas = document.getElementById("board");
-const ctx = canvas.getContext("2d");
-const wrap = document.getElementById("wrap");
-
-function resize(){
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const side = Math.min(vw, vh) * 0.8;
-
-  document.documentElement.style.setProperty("--board-side", side + "px");
-
-  canvas.width = side;
-  canvas.height = side;
-
-  drawGrid();
-}
-
-function drawGrid(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle="#0c0f12";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  const cells = 10;
-  const step = canvas.width / cells;
-
-  ctx.strokeStyle="rgba(255,255,255,0.15)";
-  for(let i=0;i<=cells;i++){
-    ctx.beginPath();
-    ctx.moveTo(i*step,0);
-    ctx.lineTo(i*step,canvas.height);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(0,i*step);
-    ctx.lineTo(canvas.width,i*step);
-    ctx.stroke();
-  }
-
-  ctx.fillStyle="#fff";
-  ctx.font="16px sans-serif";
-  ctx.fillText("CANVAS OK",12,22);
-}
-
-window.addEventListener("resize", resize);
-resize();
-</script>
-
+  <script src="./app.js"></script>
 </body>
 </html>
