@@ -68,6 +68,7 @@ function formatNum(n){
 }
 function renderPlayers(){
   const wrap = document.getElementById("players");
+  if(!wrap) return;
   wrap.innerHTML = "";
   players.forEach(p=>{
     const el = document.createElement("div");
@@ -84,19 +85,17 @@ function renderPlayers(){
 }
 
 /* =======================
-   BOARD DATA (точно как 2-й скрин)
-   Индексы 0..39 по кругу:
-   0 = нижний правый (JACKPOT)
-   10 = нижний левый (IN JAIL)
-   20 = верхний левый (START 🚀)
-   30 = верхний правый (DONUT/CHAIN, GO TO)
+   BOARD DATA (раскладка/цены как на 2-м скрине)
+   Индексы 0..39:
+   0  = JACKPOT (нижний правый)
+   10 = IN JAIL (нижний левый)
+   20 = START 🚀 (верхний левый)
+   30 = GO TO 🍩 (верхний правый)
 ======================= */
 
 function formatK(n){
   if(n === null || n === undefined) return "";
-  // на скрине цены уже в "k"
-  // передаем сюда числа в "k" (например 1080 -> "1,080k")
-  const v = Math.round(n);
+  const v = Math.round(n); // цены уже в "k"
   return v.toLocaleString("en-US") + "k";
 }
 
@@ -109,23 +108,23 @@ const cells40 = new Array(40);
 // corners
 cells40[0]  = cell("JACKPOT", null, "", "🎰", "corner");
 cells40[10] = cell("IN JAIL", null, "", "👮", "corner");
-cells40[20] = cell("START",   null, "", "🚀", "corner");     // START как на 2-м
-cells40[30] = cell("GO TO",   null, "", "🍩", "corner");     // donut/chain
+cells40[20] = cell("START",   null, "", "🚀", "corner");
+cells40[30] = cell("GO TO",   null, "", "🍩", "corner");
 
-// ---- TOP (21..29) слева->вправо (как на 2 скрине) ----
+// TOP 21..29 (слева->вправо)
 cells40[21] = cell("Botctario", 1080, "#d946ef", "", "prop");
-cells40[22] = cell("",          null, "", "🔵", "prop");     // круг
+cells40[22] = cell("",          null, "", "🔵", "prop");
 cells40[23] = cell("FENDI",     4256, "#d946ef", "", "prop");
-cells40[24] = cell("",          null, "", "🟩", "prop");     // зелёная
-cells40[25] = cell("",             0, "#ef4444", "⭐", "prop"); // мерс, 0k красным
+cells40[24] = cell("",          null, "", "🟩", "prop");
+cells40[25] = cell("",             0, "#ef4444", "⭐", "prop"); // 0k (красный)
 cells40[26] = cell("H&M",       6600, "#f59e0b", "", "prop");
 cells40[27] = cell("CHANCE",    null, "", "?", "chance");
 cells40[28] = cell("DKNY",      4100, "#f59e0b", "", "prop");
 cells40[29] = cell("LACOSTE",   6000, "#f59e0b", "", "prop");
 
-// ---- RIGHT (31..39) сверху->вниз ----
+// RIGHT 31..39 (сверху->вниз)
 cells40[31] = cell("VK",         200, "#14b8a6", "", "prop");
-cells40[32] = cell("R*",        null, "#b91c1c", "x100", "special"); // x100
+cells40[32] = cell("x100",      null, "#b91c1c", "x100", "special");
 cells40[33] = cell("YouTube",    240, "#14b8a6", "", "prop");
 cells40[34] = cell("Twitter",    600, "#14b8a6", "", "prop");
 cells40[35] = cell("AUDI",      2000, "#ef4444", "", "prop");
@@ -134,7 +133,7 @@ cells40[37] = cell("CHANCE",    null, "", "?", "chance");
 cells40[38] = cell("Mtn Dew",   6050, "#3b82f6", "", "prop");
 cells40[39] = cell("b",         8800, "#3b82f6", "", "prop");
 
-// ---- BOTTOM (1..9) справа->влево от JACKPOT к IN JAIL ----
+// BOTTOM 1..9 (справа->влево)
 cells40[1] = cell("FIJI",       7700, "#22c55e", "", "prop");
 cells40[2] = cell("CHANCE",     null, "", "?", "chance");
 cells40[3] = cell("RYANAIR",    7175, "#22c55e", "", "prop");
@@ -142,17 +141,17 @@ cells40[4] = cell("airshark",   3300, "#22c55e", "", "prop");
 cells40[5] = cell("Ford",        250, "#ef4444", "", "prop");
 cells40[6] = cell("Burger",     2500, "#38bdf8", "", "prop");
 cells40[7] = cell("BurgerKing", 2600, "#38bdf8", "", "prop");
-cells40[8] = cell("PROVIO",        0, "#b91c1c", "", "prop"); // 0k (красн.)
-cells40[9] = cell("KFC",           0, "#38bdf8", "", "prop"); // 0k (синий)
+cells40[8] = cell("PROVIO",        0, "#b91c1c", "", "prop"); // 0k красный
+cells40[9] = cell("KFC",           0, "#38bdf8", "", "prop"); // 0k синий
 
-// ---- LEFT (11..19) снизу->вверх ----
-cells40[11] = cell("HolidayInn",   0, "#a855f7", "", "prop"); // 0k
-cells40[12] = cell("Radisson",     0, "#a855f7", "", "prop"); // 0k
+// LEFT 11..19 (снизу->вверх)
+cells40[11] = cell("HolidayInn",   0, "#a855f7", "", "prop");
+cells40[12] = cell("Radisson",     0, "#a855f7", "", "prop");
 cells40[13] = cell("CHANCE",     null, "", "?", "chance");
 cells40[14] = cell("Novotel",   3200, "#a855f7", "", "prop");
 cells40[15] = cell("LandRover",  250, "#ef4444", "", "prop");
 cells40[16] = cell("DIAMOND",   null, "", "💎", "special");
-cells40[17] = cell("",            0, "#a855f7", "🟢", "prop"); // зелёный круг, 0k
+cells40[17] = cell("",            0, "#a855f7", "🟢", "prop");
 cells40[18] = cell("CHANCE",    null, "", "?", "chance");
 cells40[19] = cell("NOKIA",      500, "#64748b", "", "prop");
 
@@ -199,7 +198,6 @@ function computeCellRects(){
   const totalSide = BOARD_SIZE - 2*CORNER;
   const steps = makeSteps(totalSide, SIDE_CELLS);
 
-  // corners
   rects[0]  = {x:BOARD_SIZE-CORNER, y:BOARD_SIZE-CORNER, w:CORNER, h:CORNER};
   rects[10] = {x:0, y:BOARD_SIZE-CORNER, w:CORNER, h:CORNER};
   rects[20] = {x:0, y:0, w:CORNER, h:CORNER};
@@ -237,7 +235,7 @@ function computeCellRects(){
 }
 
 /* =======================
-   DRAW (полосы цен по краю как на 2 скрине)
+   DRAW (полосы цен выступают наружу)
 ======================= */
 
 function isBottom(i){ return i>=1 && i<=9; }
@@ -249,11 +247,9 @@ function isCorner(i){ return i===0 || i===10 || i===20 || i===30; }
 function draw(){
   ctx.clearRect(0,0,BOARD_SIZE,BOARD_SIZE);
 
-  // bg
   ctx.fillStyle = "#0d0914";
   ctx.fillRect(0,0,BOARD_SIZE,BOARD_SIZE);
 
-  // cells
   for(let i=0;i<40;i++){
     drawCell(i, cellRects[i]);
   }
@@ -273,12 +269,12 @@ function drawCell(i, r){
   ctx.fillStyle = "#fff";
   ctx.fillRect(r.x, r.y, r.w, r.h);
 
-  // border inside
+  // inner border
   ctx.strokeStyle = "#111";
   ctx.lineWidth = 1;
   ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
 
-  // price stripe (FULL length on outer edge)
+  // price stripe
   if(c.priceK !== null && c.priceBg){
     drawPriceStripe(i, r, c.priceBg, formatK(c.priceK));
   }
@@ -307,7 +303,6 @@ function drawCell(i, r){
   }
 
   if(c.kind === "special" && c.icon === "x100"){
-    // как на скрине: маленькое x100 внутри
     ctx.fillStyle = "#111";
     ctx.font = "900 14px -apple-system,system-ui,Arial";
     ctx.textAlign = "center";
@@ -316,14 +311,12 @@ function drawCell(i, r){
     return;
   }
 
-  // logo/text — ориентируем как в monopoly-one
   ctx.save();
   ctx.translate(r.x + r.w/2, r.y + r.h/2);
 
-  // top/bottom часто вертикально
+  // как у них: верх/низ часто вертикально
   if(isTop(i) || isBottom(i)) ctx.rotate(-Math.PI/2);
 
-  // icon
   if(c.icon){
     ctx.fillStyle = "#111";
     ctx.font = "900 20px -apple-system,system-ui,Arial";
@@ -332,7 +325,6 @@ function drawCell(i, r){
     ctx.fillText(c.icon, 0, -10);
   }
 
-  // label
   ctx.fillStyle = "#111";
   ctx.font = "900 14px -apple-system,system-ui,Arial";
   ctx.textAlign = "center";
@@ -342,35 +334,32 @@ function drawCell(i, r){
   ctx.restore();
 }
 
+// ✅ ВЫСТУП ЦЕННИКА НАРУЖУ (как на втором скрине)
 function drawPriceStripe(i, r, bg, text){
-  const thick = 20;      // толщина полосы
-  const protrude = 10;   // НА СКОЛЬКО ВЫСТУПАЕТ ЗА ПОЛЕ (как на скрине)
+  const thick = 20;     // толщина полосы
+  const protrude = 10;  // насколько выступает за поле
 
   ctx.save();
   ctx.fillStyle = bg;
 
-  // TOP: полоска выступает вверх
   if(isTop(i)){
+    // выступ вверх
     ctx.fillRect(r.x, r.y - protrude, r.w, thick + protrude);
     ctx.fillStyle = "#fff";
     ctx.font = "900 12px -apple-system,system-ui,Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(text, r.x + r.w/2, r.y - protrude/2 + thick/2);
-  }
-
-  // BOTTOM: выступает вниз
-  else if(isBottom(i)){
+  } else if(isBottom(i)){
+    // выступ вниз
     ctx.fillRect(r.x, r.y + r.h - thick, r.w, thick + protrude);
     ctx.fillStyle = "#fff";
     ctx.font = "900 12px -apple-system,system-ui,Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(text, r.x + r.w/2, r.y + r.h - thick/2 + protrude/2);
-  }
-
-  // LEFT: выступает влево
-  else if(isLeft(i)){
+  } else if(isLeft(i)){
+    // выступ влево
     ctx.fillRect(r.x - protrude, r.y, thick + protrude, r.h);
     ctx.translate(r.x - protrude/2 + thick/2, r.y + r.h/2);
     ctx.rotate(-Math.PI/2);
@@ -379,10 +368,8 @@ function drawPriceStripe(i, r, bg, text){
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(text, 0, 0);
-  }
-
-  // RIGHT: выступает вправо (то что ты обвел)
-  else if(isRight(i)){
+  } else if(isRight(i)){
+    // выступ вправо (как ты обвел)
     ctx.fillRect(r.x + r.w - thick, r.y, thick + protrude, r.h);
     ctx.translate(r.x + r.w - thick/2 + protrude/2, r.y + r.h/2);
     ctx.rotate(Math.PI/2);
@@ -392,9 +379,6 @@ function drawPriceStripe(i, r, bg, text){
     ctx.textBaseline = "middle";
     ctx.fillText(text, 0, 0);
   }
-
-  ctx.restore();
-}
 
   ctx.restore();
 }
@@ -479,6 +463,7 @@ const rollBtn = document.getElementById("rollBtn");
 const diceOverlay = document.getElementById("diceOverlay");
 
 function addMsg(text, cls=""){
+  if(!chatLog) return;
   const el = document.createElement("div");
   el.className = `msg ${cls}`.trim();
   el.textContent = text;
@@ -486,43 +471,52 @@ function addMsg(text, cls=""){
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
-sendBtn.addEventListener("click", ()=>{
-  const v = (chatInput.value||"").trim();
-  if(!v) return;
-  addMsg(`dimakulik: ${v}`, "you");
-  chatInput.value = "";
-});
-chatInput.addEventListener("keydown",(e)=>{ if(e.key==="Enter") sendBtn.click(); });
+if(sendBtn && chatInput){
+  sendBtn.addEventListener("click", ()=>{
+    const v = (chatInput.value||"").trim();
+    if(!v) return;
+    addMsg(`dimakulik: ${v}`, "you");
+    chatInput.value = "";
+  });
+  chatInput.addEventListener("keydown",(e)=>{ if(e.key==="Enter") sendBtn.click(); });
+}
 
 function showDice(a,b){
+  if(!diceOverlay) return;
   const faces = ["⚀","⚁","⚂","⚃","⚄","⚅"];
-  diceOverlay.querySelectorAll(".die")[0].textContent = faces[a-1];
-  diceOverlay.querySelectorAll(".die")[1].textContent = faces[b-1];
+  const dies = diceOverlay.querySelectorAll(".die");
+  if(dies[0]) dies[0].textContent = faces[a-1];
+  if(dies[1]) dies[1].textContent = faces[b-1];
   diceOverlay.classList.remove("hidden");
 }
-function hideDice(){ diceOverlay.classList.add("hidden"); }
+function hideDice(){
+  if(!diceOverlay) return;
+  diceOverlay.classList.add("hidden");
+}
 
-rollBtn.addEventListener("pointerup", async (e)=>{
-  e.preventDefault();
-  e.stopPropagation();
-  if(isRolling) return;
-  isRolling = true;
+if(rollBtn){
+  rollBtn.addEventListener("pointerup", async (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    if(isRolling) return;
+    isRolling = true;
 
-  const d1 = 1 + Math.floor(Math.random()*6);
-  const d2 = 1 + Math.floor(Math.random()*6);
-  const steps = d1 + d2;
+    const d1 = 1 + Math.floor(Math.random()*6);
+    const d2 = 1 + Math.floor(Math.random()*6);
+    const steps = d1 + d2;
 
-  addMsg(`dimakulik выбрасывает: ${d1}:${d2}`, "sys");
+    addMsg(`dimakulik выбрасывает: ${d1}:${d2}`, "sys");
 
-  showDice(d1,d2);
-  await sleep(550);
-  hideDice();
+    showDice(d1,d2);
+    await sleep(550);
+    hideDice();
 
-  await moveTokenSmoothSteps("me", steps);
+    await moveTokenSmoothSteps("me", steps);
 
-  isRolling = false;
-});
-rollBtn.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); });
+    isRolling = false;
+  });
+  rollBtn.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); });
+}
 
 /* =======================
    INIT
@@ -533,6 +527,6 @@ setupHiDPICanvas();
 computeCellRects();
 initTokenPositions();
 
-addMsg("Поле 1-в-1 по раскладке/ценам как на 2 скрине ✅", "sys");
+addMsg("Цены выступают наружу как на 2-м скрине ✅", "sys");
 
 onResize();
