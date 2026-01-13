@@ -40,6 +40,8 @@ function onResize(){
   setAppHeight();
   fitCanvas();
   setupHiDPICanvas();
+  computeCellRects();
+  initTokenPositions();
   draw();
 }
 
@@ -58,13 +60,6 @@ const players = [
   { name:"Александр",     stars:25000, active:false },
 ];
 
-/**
- * КЛЕТКИ (кастомизация будущими скинами):
- * - skinId: какой скин применён
- * - type: тип клетки (start, property, chance, tax, jail, etc.)
- * - label: текст
- * - price: цена покупки (⭐) (если property)
- */
 const cells40 = Array.from({length:40}).map((_,i)=>({
   id:i,
   type:"property",
@@ -78,12 +73,8 @@ cells40[10] = { id:10, type:"jail",  label:"IN JAIL", price:0, skinId:"jail" };
 cells40[20] = { id:20, type:"free",  label:"FREE", price:0, skinId:"free" };
 cells40[30] = { id:30, type:"goto",  label:"GO TO", price:0, skinId:"goto" };
 
-/**
- * СКИНЫ (будущее: магазин скинов).
- * Потом ты просто меняешь cell.skinId (например на "gold_start") и redraw.
- */
 const skins = {
-  default: { fill:"#ffffff", accent:"#111111", icon:"", iconColor:"#111111" },
+  default: { fill:"#ffffff", accent:"#111111", icon:"",  iconColor:"#111111" },
   start:   { fill:"#ffffff", accent:"#0f7cff", icon:"▶", iconColor:"#0f7cff" },
   jail:    { fill:"#ffffff", accent:"#ff3b5c", icon:"⛓", iconColor:"#ff3b5c" },
   free:    { fill:"#ffffff", accent:"#22c55e", icon:"★", iconColor:"#22c55e" },
@@ -124,21 +115,18 @@ function renderPlayers(){
 }
 
 /* =======================
-   CANVAS: board + tokens
+   CANVAS
 ======================= */
 
 const BOARD_SIZE = 760;
-const corner = 92;
-const edgeW = 62;
-const edgeH = 92;
+const CORNER = 92;      // угловая клетка
+const SIDE_CELLS = 9;   // на каждой стороне между углами
 
 const canvasEl = document.getElementById("boardCanvas");
 const ctx = canvasEl.getContext("2d");
 
 let DPR = 1;
-
-// прямоугольники всех клеток (для рисования и попадания фишек)
-let cellRects = []; // index -> {x,y,w,h, rot}
+let cellRects = []; // index -> {x,y,w,h}
 
 function setupHiDPICanvas(){
   DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
@@ -150,55 +138,85 @@ function setupHiDPICanvas(){
   ctx.imageSmoothingEnabled = true;
 }
 
+/**
+ * РОВНОЕ заполнение стороны:
+ * totalSide = BOARD_SIZE - CORNER
+ * делим на 9 клеток так, чтобы сумма была ровно totalSide
+ */
+function makeSteps(total, n){
+  const base = Math.floor(total / n);
+  const rem  = total - base * n; // сколько пикселей осталось
+  // первые rem клеток будут base+1, остальные base
+  const sizes = Array.from({length:n}, (_,i)=> base + (i < rem ? 1 : 0));
+  // позиции (prefix sum)
+  const pos = [0];
+  for(let i=0;i<n;i++) pos.push(pos[i] + sizes[i]);
+  return { sizes, pos };
+}
+
 function computeCellRects(){
   const rects = new Array(40);
 
-  // corners
-  rects[0]  = {x:BOARD_SIZE-corner, y:BOARD_SIZE-corner, w:corner, h:corner};
-  rects[10] = {x:0, y:BOARD_SIZE-corner, w:corner, h:corner};
-  rects[20] = {x:0, y:0, w:corner, h:corner};
-  rects[30] = {x:BOARD_SIZE-corner, y:0, w:corner, h:corner};
+  const totalSide = BOARD_SIZE - CORNER; // 668
+  const steps = makeSteps(totalSide, SIDE_CELLS);
 
-  // bottom 1..9
+  // corners
+  rects[0]  = {x:BOARD_SIZE-CORNER, y:BOARD_SIZE-CORNER, w:CORNER, h:CORNER};
+  rects[10] = {x:0, y:BOARD_SIZE-CORNER, w:CORNER, h:CORNER};
+  rects[20] = {x:0, y:0, w:CORNER, h:CORNER};
+  rects[30] = {x:BOARD_SIZE-CORNER, y:0, w:CORNER, h:CORNER};
+
+  // bottom (1..9) right->left
+  // x = BOARD_SIZE - CORNER - (prefix to k)
   for(let k=1;k<=9;k++){
-    rects[k] = { x: BOARD_SIZE-corner-edgeW*k, y: BOARD_SIZE-edgeH, w: edgeW, h: edgeH };
+    const w = steps.sizes[k-1];
+    const x = BOARD_SIZE - CORNER - steps.pos[k];
+    rects[k] = { x, y: BOARD_SIZE - CORNER, w, h: CORNER };
   }
-  // left 11..19
+
+  // left (11..19) bottom->top
   for(let k=1;k<=9;k++){
-    rects[10+k] = { x: 0, y: BOARD_SIZE-corner-edgeW*k, w: edgeH, h: edgeW };
+    const h = steps.sizes[k-1];
+    const y = BOARD_SIZE - CORNER - steps.pos[k];
+    rects[10+k] = { x:0, y, w: CORNER, h };
   }
-  // top 21..29
+
+  // top (21..29) left->right
   for(let k=1;k<=9;k++){
-    rects[20+k] = { x: corner+edgeW*(k-1), y: 0, w: edgeW, h: edgeH };
+    const w = steps.sizes[k-1];
+    const x = CORNER + steps.pos[k-1];
+    rects[20+k] = { x, y:0, w, h: CORNER };
   }
-  // right 31..39
+
+  // right (31..39) top->bottom
   for(let k=1;k<=9;k++){
-    rects[30+k] = { x: BOARD_SIZE-edgeH, y: corner+edgeW*(k-1), w: edgeH, h: edgeW };
+    const h = steps.sizes[k-1];
+    const y = CORNER + steps.pos[k-1];
+    rects[30+k] = { x: BOARD_SIZE - CORNER, y, w: CORNER, h };
   }
 
   cellRects = rects;
 }
 
 function draw(){
-  if(!cellRects.length) computeCellRects();
-
-  // background
   ctx.clearRect(0,0,BOARD_SIZE,BOARD_SIZE);
+
+  // bg
   ctx.fillStyle = "#0d0914";
   ctx.fillRect(0,0,BOARD_SIZE,BOARD_SIZE);
 
-  // draw cells (единый canvas => НЕТ ШВОВ)
+  // cells
   for(let i=0;i<40;i++){
     drawCell(i, cellRects[i]);
   }
 
-  // center area
+  // center
   ctx.fillStyle = "#2b2b2b";
   const cx = BOARD_SIZE*0.16, cy = BOARD_SIZE*0.16, cw = BOARD_SIZE*0.68, ch = BOARD_SIZE*0.68;
   ctx.fillRect(cx, cy, cw, ch);
   ctx.strokeStyle = "rgba(0,0,0,0.35)";
   ctx.lineWidth = 1;
-  ctx.strokeRect(cx, cy, cw, ch);
+  ctx.strokeRect(cx + 0.5, cy + 0.5, cw - 1, ch - 1);
 
   // tokens
   drawTokens();
@@ -212,18 +230,19 @@ function drawCell(i, r){
   ctx.fillStyle = skin.fill || "#fff";
   ctx.fillRect(r.x, r.y, r.w, r.h);
 
-  // border (рисуем линию внутри, чтобы не было “шва” по краю соседей)
-  ctx.strokeStyle = "rgba(17,17,17,1)";
+  // border (внутрь, чтобы не было щелей)
+  ctx.strokeStyle = "#111";
   ctx.lineWidth = 1;
   ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
 
-  // accent strip (типа цветной полоски как у монополии)
+  // accent strip
   ctx.fillStyle = skin.accent || "#111";
-  // полоска сверху для вертикальных, слева для горизонтальных — упрощённо
   const strip = 10;
-  if(r.h >= r.w){ // высокая (боковые)
+  // углы и верх/низ: полоска сверху
+  if(i === 0 || i === 10 || i === 20 || i === 30 || i <= 9 || (i >= 20 && i <= 29)){
     ctx.fillRect(r.x, r.y, r.w, strip);
-  }else{
+  } else {
+    // лево/право: полоска слева
     ctx.fillRect(r.x, r.y, strip, r.h);
   }
 
@@ -233,7 +252,7 @@ function drawCell(i, r){
     ctx.font = "bold 18px -apple-system, system-ui, Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(skin.icon, r.x + r.w/2, r.y + r.h/2 - 8);
+    ctx.fillText(skin.icon, r.x + r.w/2, r.y + r.h/2 - 6);
   }
 
   // label
@@ -241,31 +260,21 @@ function drawCell(i, r){
   ctx.font = "bold 10px -apple-system, system-ui, Arial";
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
+  ctx.fillText(cell.label || "", r.x + r.w/2, r.y + r.h - 6);
 
-  const text = cell.label || "";
-  ctx.fillText(text, r.x + r.w/2, r.y + r.h - 6);
-
-  // price (если property и цена есть)
+  // price
   if(cell.type === "property" && cell.price > 0){
-    ctx.fillStyle = "#111";
     ctx.font = "bold 9px -apple-system, system-ui, Arial";
     ctx.fillText(`⭐ ${formatNum(cell.price)}`, r.x + r.w/2, r.y + 14);
   }
 }
 
 /* =======================
-   TOKENS (плавная анимация)
+   TOKENS
 ======================= */
 
-const tokenState = {
-  me:    { index:0 },
-  other: { index:5 },
-};
-
-const tokenAnim = {
-  me:    { x:0, y:0 },
-  other: { x:0, y:0 },
-};
+const tokenState = { me:{index:0}, other:{index:5} };
+const tokenAnim  = { me:{x:0,y:0}, other:{x:0,y:0} };
 
 function cellCenter(index){
   const r = cellRects[index];
@@ -280,12 +289,9 @@ function initTokenPositions(){
 }
 
 function drawTokens(){
-  // me
   drawTokenCircle(tokenAnim.me.x, tokenAnim.me.y, 9, "#5ffcff");
-  // other
   drawTokenCircle(tokenAnim.other.x, tokenAnim.other.y, 9, "#ff4b6e");
 }
-
 function drawTokenCircle(x,y,r,color){
   ctx.beginPath();
   ctx.arc(x,y,r,0,Math.PI*2);
@@ -303,10 +309,8 @@ function easeInOut(t){
 
 function animateTokenTo(playerKey, target, duration=160){
   return new Promise((resolve)=>{
-    const sx = tokenAnim[playerKey].x;
-    const sy = tokenAnim[playerKey].y;
-    const dx = target.x - sx;
-    const dy = target.y - sy;
+    const sx = tokenAnim[playerKey].x, sy = tokenAnim[playerKey].y;
+    const dx = target.x - sx, dy = target.y - sy;
     const t0 = performance.now();
 
     function frame(now){
@@ -389,9 +393,7 @@ rollBtn.addEventListener("pointerup", async (e)=>{
 rollBtn.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); });
 
 /* =======================
-   FUTURE: кастомизация скинов
-   Пример (потом будет "купил скин" -> применил):
-   applySkinToCell(0, "default") или applySkinToCell(0, "start")
+   FUTURE: skin customization
 ======================= */
 function applySkinToCell(cellIndex, skinId){
   if(!cells40[cellIndex]) return;
@@ -404,11 +406,10 @@ function applySkinToCell(cellIndex, skinId){
 ======================= */
 
 renderPlayers();
-computeCellRects();
 setupHiDPICanvas();
+computeCellRects();
 initTokenPositions();
 
-addMsg("Поле рисуется на Canvas — швов быть не должно ✅", "sys");
-addMsg("Кастомизация: у каждой клетки есть skinId ✅", "sys");
+addMsg("Промежутков между клетками быть не должно ✅", "sys");
 
 onResize();
