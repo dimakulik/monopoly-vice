@@ -21,15 +21,11 @@
       --safe-left: env(safe-area-inset-left, 0px);
       --safe-right: env(safe-area-inset-right, 0px);
 
-      --gap: 10px;
-      --players-w: 92px;     /* как на рефе */
-      --actions-w: 54px;     /* как на рефе */
-      --chat-h: 54px;        /* чат ПОД полем */
-      --vh: 1vh;             /* будет перезаписан JS (важно для Telegram/iOS) */
-      --board-size: 320px;   /* будет перезаписан JS */
+      --vh: 1vh;          /* JS fix for Telegram */
+      --board: 320px;     /* JS sets */
     }
 
-    /* ====== 3 колонки как monopoly-one ====== */
+    /* full screen center */
     #app{
       width:100%;
       height: calc(var(--vh) * 100);
@@ -38,123 +34,49 @@
         calc(var(--safe-right) + 10px)
         calc(var(--safe-bottom) + 10px)
         calc(var(--safe-left) + 10px);
-      display:grid;
-      grid-template-columns: var(--players-w) 1fr var(--actions-w);
-      gap: var(--gap);
-      align-items: stretch;
-    }
-
-    /* ===== LEFT: PLAYERS ===== */
-    .players{
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      justify-content:center; /* как на рефе — по центру вертикально */
-    }
-
-    .player-card{
-      height: 92px;
-      border-radius: 18px;
-      background: rgba(20,26,30,0.55);
-      padding: 10px;
-      display:flex;
-      flex-direction:column;
-      gap: 8px;
-      box-shadow: 0 10px 22px rgba(0,0,0,0.25);
-    }
-
-    .player-top{
       display:flex;
       align-items:center;
-      gap:10px;
-      min-width:0;
-    }
-
-    .player-avatar{
-      width: 46px;
-      height: 46px;
-      border-radius: 50%;
-      background:#1b2329;
-      border: 5px solid rgba(255,255,255,0.08);
-      flex:0 0 auto;
-    }
-
-    .player-name{
-      color:#e8eef3;
-      font-size: 14px;
-      opacity: .95;
-      white-space: nowrap;
-      overflow:hidden;
-      text-overflow: ellipsis;
-    }
-
-    .player-money{
-      color:#e8eef3;
-      font-size: 18px;
-      font-weight: 900;
-      letter-spacing: .2px;
-      padding-left: 4px;
-    }
-
-    /* ===== RIGHT: ACTIONS ===== */
-    .actions{
-      display:flex;
-      flex-direction:column;
-      gap:12px;
       justify-content:center;
     }
-    .act{
-      height: 56px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      color:#e8eef3;
-      font-weight: 900;
-      font-size: 16px;
-    }
 
-    /* ===== CENTER: BOARD + CHAT (чат ПОД полем как на рефе) ===== */
-    .center{
+    /* give big top air like monopoly-one and push board down */
+    .stage{
+      width:100%;
+      height:100%;
       display:flex;
       flex-direction:column;
-      min-width:0;
-      height:100%;
+      align-items:center;
     }
-
-    /* верхний “воздух” как на рефе */
-    .top-space{
-      flex: 1 1 auto; /* растягивается и толкает всё вниз */
-    }
+    .top-space{ flex: 1 1 auto; }
 
     .board-wrap{
-      display:flex;
-      justify-content:center;
-      align-items:center;
       flex: 0 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:100%;
     }
 
     .board{
-      width: var(--board-size);
-      height: var(--board-size);
+      width: var(--board);
+      height: var(--board);
       position:relative;
-      border-radius: 0;              /* на рефе почти прямые углы */
       overflow:hidden;
       background: rgba(10,14,18,0.28);
       box-shadow: 0 14px 40px rgba(0,0,0,0.35);
     }
 
-    /* центр пустой как у monopoly-one */
     .board-center{
       position:absolute;
       inset: 17% 17% 17% 17%;
-      background: rgba(43,53,61,0.85); /* близко к фону */
+      background: rgba(43,53,61,0.85);
     }
 
-    /* клетки */
+    /* cells */
     .cell{
       position:absolute;
       background:#fff;
-      border: 2px solid rgba(0,0,0,0.15); /* толще как на рефе */
+      border: 2px solid rgba(0,0,0,0.15);
       overflow:hidden;
       display:flex;
       align-items:center;
@@ -163,30 +85,31 @@
     .cell img{
       width:100%;
       height:100%;
-      object-fit:contain; /* логотипы как на рефе */
+      object-fit:contain;
+      padding:6px;
       display:block;
-      padding: 6px;
     }
-
-    /* ценник полоской как на рефе */
     .price{
       position:absolute;
       left:0; right:0;
       top:0;
-      height: 16px;
+      height:16px;
       display:flex;
       align-items:center;
       justify-content:center;
       color:#fff;
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: .2px;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.2px;
     }
 
-    /* CHAT BAR (ПОД полем) */
-    .chatbar{
-      height: var(--chat-h);
-      margin-top: 10px;
+    /* CHAT INSIDE BOARD (center-bottom of empty area) */
+    .chat{
+      position:absolute;
+      left:50%;
+      transform: translateX(-50%);
+      bottom: 14%;
+      width: 72%;
       background: rgba(35,43,50,0.82);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 14px;
@@ -196,131 +119,74 @@
       gap:10px;
       backdrop-filter: blur(8px);
     }
-    .chatbar .room{
+    .chat .room{
       color: rgba(255,255,255,0.85);
-      font-size: 13px;
-      padding: 0 4px;
-      flex: 0 0 auto;
+      font-size:13px;
+      padding:0 4px;
+      flex:0 0 auto;
     }
-    .chatbar input{
-      flex: 1 1 auto;
-      height: 38px;
-      border-radius: 999px;
-      border: none;
-      outline: none;
-      padding: 0 14px;
+    .chat input{
+      flex:1 1 auto;
+      height:38px;
+      border-radius:999px;
+      border:none;
+      outline:none;
+      padding:0 14px;
       background: rgba(255,255,255,0.10);
-      color: #fff;
-      font-size: 14px;
-      min-width: 0;
+      color:#fff;
+      font-size:14px;
+      min-width:0;
     }
-    .chatbar button{
-      width: 44px;
-      height: 38px;
-      border-radius: 999px;
-      border: none;
+    .chat button{
+      width:44px;
+      height:38px;
+      border-radius:999px;
+      border:none;
       background: rgba(255,255,255,0.12);
       color:#fff;
-      font-size: 16px;
-      font-weight: 900;
-    }
-
-    /* мелкие экраны */
-    @media (max-width: 380px){
-      :root{ --players-w: 86px; --actions-w: 50px; --gap: 8px; }
-      .player-card{ height: 88px; }
-      .act{ height: 52px; }
+      font-size:16px;
+      font-weight:900;
     }
   </style>
 </head>
 
 <body>
   <div id="app">
-    <aside class="players" id="players"></aside>
-
-    <main class="center">
+    <div class="stage">
       <div class="top-space"></div>
 
       <div class="board-wrap">
         <div class="board" id="board">
           <div class="board-center"></div>
+
+          <div class="chat">
+            <div class="room">Всем</div>
+            <input id="chatInput" placeholder="Введите сообщение" />
+            <button id="sendBtn">➤</button>
+          </div>
         </div>
       </div>
 
-      <div class="chatbar">
-        <div class="room">Всем</div>
-        <input id="chatInput" placeholder="Введите сообщение" />
-        <button id="sendBtn">➤</button>
-      </div>
-    </main>
-
-    <aside class="actions">
-      <button class="act">⟳</button>
-      <button class="act">R</button>
-      <button class="act">friend</button>
-      <button class="act">🔑</button>
-      <button class="act">A</button>
-      <button class="act">coca</button>
-      <button class="act">pepsi</button>
-      <button class="act">fanta</button>
-    </aside>
+      <div class="top-space"></div>
+    </div>
   </div>
 
   <script>
     const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-    if (tg) {
-      try { tg.expand(); tg.setBackgroundColor("#2b353d"); tg.setHeaderColor("#2b353d"); } catch(e){}
-    }
+    if (tg) { try { tg.expand(); } catch(e){} }
 
-    // ✅ фикс высоты для Telegram/iOS (100vh ломается)
+    // ✅ Telegram/iOS viewport fix
     function setVH(){
       const h = (tg && tg.viewportStableHeight) ? tg.viewportStableHeight : window.innerHeight;
       document.documentElement.style.setProperty("--vh", (h * 0.01) + "px");
     }
     setVH();
     window.addEventListener("resize", () => { clearTimeout(window.__vh); window.__vh=setTimeout(setVH, 50); });
-    if (tg && tg.onEvent) {
-      try { tg.onEvent("viewportChanged", setVH); } catch(e){}
-    }
+    if (tg && tg.onEvent) { try { tg.onEvent("viewportChanged", setVH); } catch(e){} }
 
-    const players = [
-      { name:"pehi44", money:"17,500k", color:"#ff5b5b" },
-      { name:"dimakulik", money:"17,500k", color:"#34d399" },
-      { name:"Sanich303", money:"17,500k", color:"#60a5fa" },
-    ];
+    const board = document.getElementById("board");
 
-    const playersEl = document.getElementById("players");
-    function renderPlayers(){
-      playersEl.innerHTML = "";
-      players.forEach(p=>{
-        const card = document.createElement("div");
-        card.className = "player-card";
-
-        const top = document.createElement("div");
-        top.className = "player-top";
-
-        const av = document.createElement("div");
-        av.className = "player-avatar";
-        av.style.borderColor = p.color;
-
-        const name = document.createElement("div");
-        name.className = "player-name";
-        name.textContent = p.name;
-
-        top.appendChild(av);
-        top.appendChild(name);
-
-        const money = document.createElement("div");
-        money.className = "player-money";
-        money.textContent = "$ " + p.money;
-
-        card.appendChild(top);
-        card.appendChild(money);
-        playersEl.appendChild(card);
-      });
-    }
-
-    // Заглушки логотипов (потом заменишь на реальные PNG/JPG)
+    // placeholders (потом заменишь на реальные бренды)
     const logos = [
       "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' fill='%23fff'/><text x='50%25' y='58%25' font-size='54' text-anchor='middle' fill='%23000'>GO</text></svg>",
       "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' fill='%23fff'/><text x='50%25' y='58%25' font-size='38' text-anchor='middle' fill='%23000'>NOKIA</text></svg>",
@@ -328,13 +194,10 @@
       "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' fill='%23fff'/><text x='50%25' y='58%25' font-size='40' text-anchor='middle' fill='%23000'>APPLE</text></svg>",
       "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><rect width='240' height='240' fill='%23fff'/><text x='50%25' y='58%25' font-size='38' text-anchor='middle' fill='%23000'>ADIDAS</text></svg>",
     ];
-
     const prices = ["200k","400k","600k","800k","1,000k","1,200k","1,500k","2,000k","2,200k","2,400k","2,600k","3,000k"];
     const priceColors = ["#f97316","#ec4899","#22c55e","#3b82f6","#a855f7","#ef4444"];
 
     const CELL_COUNT = 40;
-    const board = document.getElementById("board");
-    const app = document.getElementById("app");
     let cells = [];
 
     function getLogo(i){ return logos[i % logos.length]; }
@@ -363,17 +226,9 @@
       }
     }
 
-    // 40 клеток как в monopoly-one:
-    // 0 угол TL
-    // 1..9 верх (9)
-    // 10 угол TR
-    // 11..19 право (9)
-    // 20 угол BR
-    // 21..29 низ (9)
-    // 30 угол BL
-    // 31..39 лево (9)
+    // 40 cells: 4 corners + 9 between each side
     function layoutCells(size){
-      const corner = Math.floor(size * 0.135);  // углы побольше как на рефе
+      const corner = Math.floor(size * 0.135);
       const step = Math.floor((size - corner*2) / 9);
 
       const set = (idx, x,y,w,h)=>{
@@ -407,29 +262,19 @@
     }
 
     function updateBoardSize(){
-      // высота берём из стабильного viewport Telegram
+      // square that fits screen (no side panels)
       const H = (tg && tg.viewportStableHeight) ? tg.viewportStableHeight : window.innerHeight;
-      const rect = app.getBoundingClientRect();
-      const rootStyle = getComputedStyle(document.documentElement);
+      const W = window.innerWidth;
 
-      const playersW = parseInt(rootStyle.getPropertyValue("--players-w")) || 92;
-      const actionsW = parseInt(rootStyle.getPropertyValue("--actions-w")) || 54;
-      const gap = parseInt(rootStyle.getPropertyValue("--gap")) || 10;
-      const chatH = parseInt(rootStyle.getPropertyValue("--chat-h")) || 54;
-
-      // доступная ширина под поле
-      const maxW = rect.width - playersW - actionsW - gap*2;
-
-      // доступная высота под поле: весь экран минус чат и отступы
-      // + небольшой запас (как на рефе)
-      const maxH = (H - (chatH + 18) - 40);
-
+      // keep "air" above like reference: board smaller than full height
+      const maxW = W - 20;
+      const maxH = H - 140; // запас под верх+низ, чтобы поле было не огромным
       const size = Math.max(260, Math.floor(Math.min(maxW, maxH)));
-      document.documentElement.style.setProperty("--board-size", size + "px");
+
+      document.documentElement.style.setProperty("--board", size + "px");
       layoutCells(size);
     }
 
-    renderPlayers();
     buildCells();
     updateBoardSize();
 
@@ -437,9 +282,7 @@
       clearTimeout(window.__rz);
       window.__rz = setTimeout(updateBoardSize, 60);
     });
-    if (tg && tg.onEvent) {
-      try { tg.onEvent("viewportChanged", updateBoardSize); } catch(e){}
-    }
+    if (tg && tg.onEvent) { try { tg.onEvent("viewportChanged", updateBoardSize); } catch(e){} }
 
     document.getElementById("sendBtn").addEventListener("click", ()=>{
       const inp = document.getElementById("chatInput");
