@@ -115,33 +115,39 @@
     /* =======================
        MOBILE: 2 columns (players + board), NO OVERLAP
        ======================= */
-    @media (max-width: 900px){
-      .app{
-        grid-template-columns:128px 1fr;
-      }
-      .left{
-        position:static;
-        width:auto;
-        padding:calc(10px + var(--safe-top)) 8px calc(10px + var(--safe-bottom)) 8px;
-        background:transparent;
-        gap:10px;
-        overflow:hidden;
-      }
-      .pcard{
-        width:100%;
-        border-radius:14px;
-        padding:10px;
-      }
-      .pmoney{ font-size:16px; }
-      .pname{ font-size:12px; }
-      .ava{ width:44px; height:44px; margin:0 auto 6px; }
+@media (max-width: 900px){
+  .app{
+    grid-template-columns:128px 1fr;
+    align-items:center;                 /* центрируем по вертикали */
+  }
 
-      .stage{
-        padding:calc(10px + var(--safe-top)) 10px calc(10px + var(--safe-bottom)) 10px;
-        justify-content:center;
-      }
-      .chatBar{ width:88%; }
-    }
+  /* делаем колонку игроков такой же высоты как поле */
+  .left{
+    padding:calc(10px + var(--safe-top)) 8px calc(10px + var(--safe-bottom)) 8px;
+    background:transparent;
+    gap:10px;
+    overflow:auto;                      /* если игроков много — скролл внутри */
+    height:var(--board-side);           /* ВАЖНО: ограничиваем высотой поля */
+    align-self:center;
+  }
+
+  /* карточки компактнее */
+  .pcard{
+    width:100%;
+    border-radius:14px;
+    padding:10px;
+  }
+  .pmoney{ font-size:14px; line-height:1; }
+  .pname{ font-size:12px; line-height:1.1; }
+  .ava{ width:40px; height:40px; margin:0 auto 6px; }
+
+  .stage{
+    padding:calc(10px + var(--safe-top)) 10px calc(10px + var(--safe-bottom)) 10px;
+    justify-content:center;
+  }
+  .chatBar{ width:88%; }
+}
+
   </style>
 </head>
 
