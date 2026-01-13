@@ -7,43 +7,59 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <div id="app">
-    <aside id="playersPanel">
-      <div id="players"></div>
+  <div class="app">
+    <aside class="left">
+      <div class="pcard big red">
+        <div class="lvl">71</div>
+        <div class="ava"></div>
+        <div class="pname">Shnurok</div>
+        <div class="pmoney">$ 15,000k</div>
+      </div>
+
+      <div class="pcard big">
+        <div class="ava ring green"></div>
+        <div class="pname">dimakulik</div>
+        <div class="pmoney">$ 15,000k</div>
+      </div>
+
+      <div class="swords">⚔️</div>
+
+      <div class="pcard">
+        <div class="ava ring blue"></div>
+        <div class="pname">⭐ Дима</div>
+        <div class="pmoney">$ 15,000k</div>
+      </div>
+
+      <div class="pcard">
+        <div class="ava ring purple"></div>
+        <div class="pname">⭐ Morpheus</div>
+        <div class="pmoney">$ 15,000k</div>
+      </div>
     </aside>
 
-    <main id="game">
-      <div id="viewport">
-        <div id="canvas">
-          <canvas id="boardCanvas"></canvas>
-          <div id="debug"></div>
-        </div>
+    <main class="mid">
+      <div class="stage" id="stage">
+        <div class="boardWrap" id="boardWrap">
+          <canvas id="board"></canvas>
 
-        <div id="uiCenter">
-          <div id="turnCard">
-            <div class="turnTitle">Ваш ход!</div>
-            <div class="turnSub">Вперёд, к новым победам!</div>
-            <button id="rollBtn">Бросить кубики</button>
-          </div>
+          <div class="chat" id="chat">
+            <div class="chatLog" id="chatLog"></div>
 
-          <div id="chatBox">
-            <div id="chatLog"></div>
-            <div id="chatBar">
-              <input id="chatInput" placeholder="Введите сообщение..." />
-              <button id="sendBtn" aria-label="send">▶</button>
+            <div class="chatBar">
+              <button class="scopeBtn">Всем</button>
+              <input id="msg" placeholder="Введите сообщение" />
+              <div class="icons">
+                <span class="ico">😺</span>
+                <span class="ico">⛶</span>
+                <span class="ico">⌃</span>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div id="diceOverlay" class="hidden">
-          <div class="die">⚀</div>
-          <div class="die">⚀</div>
         </div>
       </div>
     </main>
   </div>
 
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>
