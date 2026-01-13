@@ -60,18 +60,23 @@ const players = [
   { name:"Александр",     stars:25000, active:false },
 ];
 
+/**
+ * ВАЖНО:
+ * - внутри мы всё равно используем индексы 0..39
+ * - но отображаем “Поле 1..40”, чтобы не казалось что “40 пропала”
+ */
 const cells40 = Array.from({length:40}).map((_,i)=>({
   id:i,
   type:"property",
-  label:`Поле ${i}`,
+  label:`Поле ${i+1}`,   // <-- теперь 1..40
   price: 0,
   skinId: "default",
 }));
 
-cells40[0]  = { id:0,  type:"start", label:"START", price:0, skinId:"start" };
-cells40[10] = { id:10, type:"jail",  label:"IN JAIL", price:0, skinId:"jail" };
-cells40[20] = { id:20, type:"free",  label:"FREE", price:0, skinId:"free" };
-cells40[30] = { id:30, type:"goto",  label:"GO TO", price:0, skinId:"goto" };
+cells40[0]  = { id:0,  type:"start", label:"START",  price:0, skinId:"start" };
+cells40[10] = { id:10, type:"jail",  label:"IN JAIL",price:0, skinId:"jail" };
+cells40[20] = { id:20, type:"free",  label:"FREE",   price:0, skinId:"free" };
+cells40[30] = { id:30, type:"goto",  label:"GO TO",  price:0, skinId:"goto" };
 
 const skins = {
   default: { fill:"#ffffff", accent:"#111111", icon:"",  iconColor:"#111111" },
@@ -119,8 +124,8 @@ function renderPlayers(){
 ======================= */
 
 const BOARD_SIZE = 760;
-const CORNER = 92;      // угловая клетка
-const SIDE_CELLS = 9;   // на каждой стороне между углами
+const CORNER = 92;
+const SIDE_CELLS = 9;
 
 const canvasEl = document.getElementById("boardCanvas");
 const ctx = canvasEl.getContext("2d");
@@ -139,25 +144,23 @@ function setupHiDPICanvas(){
 }
 
 /**
- * РОВНОЕ заполнение стороны:
- * totalSide = BOARD_SIZE - CORNER
- * делим на 9 клеток так, чтобы сумма была ровно totalSide
+ * Делим totalSide на 9 клеток так, чтобы сумма была ровно totalSide
  */
 function makeSteps(total, n){
   const base = Math.floor(total / n);
-  const rem  = total - base * n; // сколько пикселей осталось
-  // первые rem клеток будут base+1, остальные base
+  const rem  = total - base * n;
   const sizes = Array.from({length:n}, (_,i)=> base + (i < rem ? 1 : 0));
-  // позиции (prefix sum)
   const pos = [0];
   for(let i=0;i<n;i++) pos.push(pos[i] + sizes[i]);
-  return { sizes, pos };
+  return { sizes, pos }; // pos[k] = сумма первых k
 }
 
 function computeCellRects(){
   const rects = new Array(40);
-
-  const totalSide = BOARD_SIZE - CORNER; // 668
+  const totalSide = BOARD_SIZE - 2*CORNER; // <-- ВОТ КЛЮЧ! между углами по стороне
+  // было неправильно: BOARD_SIZE - CORNER
+  // правильно: от CORNER до BOARD_SIZE-CORNER -> длина = BOARD_SIZE - 2*CORNER
+  // 760 - 184 = 576
   const steps = makeSteps(totalSide, SIDE_CELLS);
 
   // corners
@@ -166,29 +169,28 @@ function computeCellRects(){
   rects[20] = {x:0, y:0, w:CORNER, h:CORNER};
   rects[30] = {x:BOARD_SIZE-CORNER, y:0, w:CORNER, h:CORNER};
 
-  // bottom (1..9) right->left
-  // x = BOARD_SIZE - CORNER - (prefix to k)
+  // bottom (1..9) справа -> влево, строго между углами
   for(let k=1;k<=9;k++){
     const w = steps.sizes[k-1];
-    const x = BOARD_SIZE - CORNER - steps.pos[k];
+    const x = CORNER + (totalSide - steps.pos[k]); // <-- фикс смещения и длины
     rects[k] = { x, y: BOARD_SIZE - CORNER, w, h: CORNER };
   }
 
-  // left (11..19) bottom->top
+  // left (11..19) снизу -> вверх, строго между углами
   for(let k=1;k<=9;k++){
     const h = steps.sizes[k-1];
-    const y = BOARD_SIZE - CORNER - steps.pos[k];
+    const y = CORNER + (totalSide - steps.pos[k]); // <-- фикс
     rects[10+k] = { x:0, y, w: CORNER, h };
   }
 
-  // top (21..29) left->right
+  // top (21..29) слева -> вправо
   for(let k=1;k<=9;k++){
     const w = steps.sizes[k-1];
     const x = CORNER + steps.pos[k-1];
     rects[20+k] = { x, y:0, w, h: CORNER };
   }
 
-  // right (31..39) top->bottom
+  // right (31..39) сверху -> вниз
   for(let k=1;k<=9;k++){
     const h = steps.sizes[k-1];
     const y = CORNER + steps.pos[k-1];
@@ -218,7 +220,6 @@ function draw(){
   ctx.lineWidth = 1;
   ctx.strokeRect(cx + 0.5, cy + 0.5, cw - 1, ch - 1);
 
-  // tokens
   drawTokens();
 }
 
@@ -226,11 +227,10 @@ function drawCell(i, r){
   const cell = cells40[i];
   const skin = skins[cell.skinId] || skins.default;
 
-  // fill
   ctx.fillStyle = skin.fill || "#fff";
   ctx.fillRect(r.x, r.y, r.w, r.h);
 
-  // border (внутрь, чтобы не было щелей)
+  // граница внутрь
   ctx.strokeStyle = "#111";
   ctx.lineWidth = 1;
   ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
@@ -238,11 +238,9 @@ function drawCell(i, r){
   // accent strip
   ctx.fillStyle = skin.accent || "#111";
   const strip = 10;
-  // углы и верх/низ: полоска сверху
   if(i === 0 || i === 10 || i === 20 || i === 30 || i <= 9 || (i >= 20 && i <= 29)){
     ctx.fillRect(r.x, r.y, r.w, strip);
   } else {
-    // лево/право: полоска слева
     ctx.fillRect(r.x, r.y, strip, r.h);
   }
 
@@ -261,12 +259,6 @@ function drawCell(i, r){
   ctx.textAlign = "center";
   ctx.textBaseline = "alphabetic";
   ctx.fillText(cell.label || "", r.x + r.w/2, r.y + r.h - 6);
-
-  // price
-  if(cell.type === "property" && cell.price > 0){
-    ctx.font = "bold 9px -apple-system, system-ui, Arial";
-    ctx.fillText(`⭐ ${formatNum(cell.price)}`, r.x + r.w/2, r.y + 14);
-  }
 }
 
 /* =======================
@@ -292,6 +284,7 @@ function drawTokens(){
   drawTokenCircle(tokenAnim.me.x, tokenAnim.me.y, 9, "#5ffcff");
   drawTokenCircle(tokenAnim.other.x, tokenAnim.other.y, 9, "#ff4b6e");
 }
+
 function drawTokenCircle(x,y,r,color){
   ctx.beginPath();
   ctx.arc(x,y,r,0,Math.PI*2);
@@ -393,15 +386,6 @@ rollBtn.addEventListener("pointerup", async (e)=>{
 rollBtn.addEventListener("click", (e)=>{ e.preventDefault(); e.stopPropagation(); });
 
 /* =======================
-   FUTURE: skin customization
-======================= */
-function applySkinToCell(cellIndex, skinId){
-  if(!cells40[cellIndex]) return;
-  cells40[cellIndex].skinId = skinId;
-  draw();
-}
-
-/* =======================
    INIT
 ======================= */
 
@@ -410,6 +394,6 @@ setupHiDPICanvas();
 computeCellRects();
 initTokenPositions();
 
-addMsg("Промежутков между клетками быть не должно ✅", "sys");
+addMsg("Все клетки должны быть без зазоров ✅", "sys");
 
 onResize();
