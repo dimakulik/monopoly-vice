@@ -17,15 +17,10 @@
       --vh:1vh;
       --board:300px;
 
-      /* как в monopoly-one: ценники вплотную к полю */
-      --gap:0px;
-
-      /* плоские ценники */
-      --ph:16px;
-      --pw:22px;
-      --pr:0px; /* квадратные */
-
-      /* толщина “линии” между клетками как у поля */
+      --gap:0px;     /* без разрыва между ценой и полем */
+      --ph:16px;     /* высота цены сверху/снизу */
+      --pw:22px;     /* ширина цены слева/справа */
+      --pr:0px;      /* квадратные */
       --grid:2px;
       --grid-color: rgba(0,0,0,.22);
     }
@@ -51,26 +46,22 @@
       width:var(--board);
       height:var(--board);
       background:rgba(10,14,18,.28);
-      box-shadow:0 18px 50px rgba(0,0,0,.35);
+      overflow:hidden;
+      z-index:1; /* поле ниже ценников */
 
-      /* рамка и “сеточный” вид как в monopoly-one */
       outline: var(--grid) solid var(--grid-color);
-      outline-offset: 0;
       box-shadow:
         0 18px 50px rgba(0,0,0,.35),
         inset 0 0 0 var(--grid) var(--grid-color);
-      overflow:hidden;
     }
 
-    /* клетки: без border, чтобы не было “дыр” при округлении */
     .cell{
       position:absolute;
       background:#fff;
       display:flex;
       align-items:center;
       justify-content:center;
-
-      /* линии между клетками */
+      z-index:2; /* клетки ниже ценников */
       box-shadow: inset 0 0 0 var(--grid) var(--grid-color);
     }
     .cell img{
@@ -81,7 +72,7 @@
       display:block;
     }
 
-    /* цены: квадратные и вплотную */
+    /* ценники поверх всего */
     .price{
       position:absolute;
       display:flex;
@@ -93,7 +84,8 @@
       pointer-events:none;
       overflow:hidden;
       font-variant-numeric: tabular-nums;
-      box-shadow:none; /* без тени как у monopoly-one */
+      box-shadow:none;
+      z-index:10; /* <- фикс: чтобы снизу НЕ исчезали */
     }
     .price span{
       display:block;
@@ -107,7 +99,6 @@
     .price.left  span{ transform:rotate(-90deg); }
     .price.right span{ transform:rotate( 90deg); }
 
-    /* чат */
     .chat{
       position:absolute;
       left:50%;
@@ -121,40 +112,32 @@
       display:flex;
       gap:8px;
       backdrop-filter: blur(8px);
+      z-index:5;
     }
     .chat input{
-      flex:1;
-      height:36px;
-      border-radius:999px;
-      border:none;
-      padding:0 14px;
-      background:rgba(255,255,255,.12);
-      color:#fff;
-      outline:none;
-      min-width:0;
+      flex:1;height:36px;border-radius:999px;border:none;
+      padding:0 14px;background:rgba(255,255,255,.12);
+      color:#fff;outline:none;min-width:0;
     }
     .chat button{
-      width:42px;
-      border:none;
-      border-radius:999px;
+      width:42px;border:none;border-radius:999px;
       background:rgba(255,255,255,.2);
-      color:#fff;
-      font-weight:900;
+      color:#fff;font-weight:900;
     }
   </style>
 </head>
 
 <body>
-  <div id="app">
-    <div class="outer" id="outer">
-      <div class="board" id="board">
-        <div class="chat">
-          <input placeholder="Введите сообщение" />
-          <button>➤</button>
-        </div>
+<div id="app">
+  <div class="outer" id="outer">
+    <div class="board" id="board">
+      <div class="chat">
+        <input placeholder="Введите сообщение" />
+        <button>➤</button>
       </div>
     </div>
   </div>
+</div>
 
 <script>
   const tg = window.Telegram?.WebApp;
@@ -204,6 +187,7 @@
     tags.push(p);
   }
 
+  // автоподжим текста
   function fit(tag){
     if (tag.style.display === 'none') return;
     const span = tag.querySelector('span');
@@ -212,7 +196,7 @@
     const isTB = tag.classList.contains('tb');
     const limit = isTB ? tag.clientWidth : tag.clientHeight;
 
-    span.style.transform = ''; // reset
+    span.style.transform = '';
     const needed = span.scrollWidth;
     const scale = Math.min(1, (limit - 2) / Math.max(1, needed));
 
@@ -245,8 +229,8 @@
     const ox = br.left - or.left;
     const oy = br.top  - or.top;
 
-    const boardW = parseInt(getComputedStyle(board).width);
-    const boardH = parseInt(getComputedStyle(board).height);
+    const boardW = Math.round(br.width);
+    const boardH = Math.round(br.height);
 
     let x=0,y=0,w=0,h=0, cls='';
 
@@ -277,56 +261,76 @@
     }
 
     tag.className = 'price ' + cls;
-    Object.assign(tag.style, {left:(ox+x)+'px', top:(oy+y)+'px', width:w+'px', height:h+'px'});
-    fit(tag);
+    Object.assign(tag.style, {
+      left: Math.round(ox + x) + 'px',
+      top:  Math.round(oy + y) + 'px',
+      width: Math.round(w) + 'px',
+      height: Math.round(h) + 'px'
+    });
+
+    // IMPORTANT: фитим после того как браузер применил размеры
+    requestAnimationFrame(()=>fit(tag));
+  }
+
+  // распределяем лишние пиксели по 9 клеткам, чтобы край всегда попадал в угол
+  function rowSegments(total){
+    const base = Math.floor(total / 9);
+    const rem  = total - base*9; // 0..8
+    const widths = Array.from({length:9}, (_,i)=> base + (i < rem ? 1 : 0));
+    const offs = [0];
+    for(let i=0;i<9;i++) offs.push(offs[i] + widths[i]);
+    return {widths, offs}; // offs длиной 10
   }
 
   function layout(){
     const size = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--board')) || 300;
 
-    /* ВАЖНО: делаем размеры кратными, чтобы не было “пиксельных дыр” */
     const corner = Math.round(size * 0.135);
     const inner = size - corner*2;
-    const step  = Math.floor(inner / 9);
-    const used  = step * 9;
-    const padFix = inner - used; // лишние пиксели, распределим по краям
-    const leftShift = Math.floor(padFix / 2);
 
-    // клетки
+    const seg = rowSegments(inner); // 9 сегментов
+    const W = seg.widths;
+    const O = seg.offs; // 0..9
+
+    // corners
     placeCell(0, 0, 0, corner, corner);
 
-    // top 1..9
+    // top 1..9 (идеально стык в угол)
     for(let i=1;i<=9;i++){
-      const x = corner + leftShift + (i-1)*step;
-      placeCell(i, x, 0, step, corner);
+      const x = corner + O[i-1];
+      placeCell(i, x, 0, W[i-1], corner);
     }
     placeCell(10, size-corner, 0, corner, corner);
 
     // right 11..19
     for(let i=11;i<=19;i++){
-      const y = corner + leftShift + (i-11)*step;
-      placeCell(i, size-corner, y, corner, step);
+      const y = corner + O[i-11];
+      placeCell(i, size-corner, y, corner, W[i-11]);
     }
     placeCell(20, size-corner, size-corner, corner, corner);
 
     // bottom 21..29
     for(let i=21;i<=29;i++){
-      const x = size-corner - leftShift - (i-20)*step;
-      placeCell(i, x, size-corner, step, corner);
+      const k = i-21; // 0..8
+      const x = corner + O[9-(k+1)];           // старт справа налево
+      const w = W[9-(k+1)];
+      placeCell(i, x, size-corner, w, corner);
     }
     placeCell(30, 0, size-corner, corner, corner);
 
     // left 31..39
     for(let i=31;i<=39;i++){
-      const y = size-corner - leftShift - (i-30)*step;
-      placeCell(i, 0, y, corner, step);
+      const k = i-31; // 0..8
+      const y = corner + O[9-(k+1)];
+      const h = W[9-(k+1)];
+      placeCell(i, 0, y, corner, h);
     }
 
-    // цены (без углов)
-    for(let i=1;i<=9;i++)  placePrice(i, 'top');
-    for(let i=11;i<=19;i++) placePrice(i, 'right');
-    for(let i=21;i<=29;i++) placePrice(i, 'bottom');
-    for(let i=31;i<=39;i++) placePrice(i, 'left');
+    // prices (без углов)
+    for(let i=1;i<=9;i++)  placePrice(i,'top');
+    for(let i=11;i<=19;i++) placePrice(i,'right');
+    for(let i=21;i<=29;i++) placePrice(i,'bottom');
+    for(let i=31;i<=39;i++) placePrice(i,'left');
 
     [0,10,20,30].forEach(i => tags[i].style.display = 'none');
   }
